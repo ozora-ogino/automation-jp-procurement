@@ -48,7 +48,6 @@ services:
       - ./config:/opt/airflow/config
       - ./plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/data
-      # requirements.txtをマウント
       - ./requirements.txt:/opt/airflow/requirements.txt:ro
     ports:
       - "${AIRFLOW_WEBSERVER_PORT}:8080"
@@ -84,7 +83,6 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW_LOAD_EXAMPLES}
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
       AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
-      # OpenAI API Key
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
