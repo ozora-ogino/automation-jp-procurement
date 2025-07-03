@@ -1,0 +1,9 @@
+postgres_data
+logs
+plugins
+config
+data
+
+.DS_Store
+__pycache__
+*.pyc
