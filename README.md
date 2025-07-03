@@ -7,7 +7,7 @@
 ```bash
 docker compose up
 # Initialize Postgre (only once)
-docker exec -i airflow_postgres psql -U airflow -d airflow < sql/setup_db.sql
+docker exec -i airflow_postgres psql -U airflow -d automation-jp-procurement < sql/setup_db.sql
 ```
 
 Access httP://localhost:3031.
