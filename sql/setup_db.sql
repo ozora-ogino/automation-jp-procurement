@@ -74,15 +74,15 @@ CREATE TABLE IF NOT EXISTS bidding_cases (
 -- 3. ベクトル検索用テーブル
 CREATE TABLE IF NOT EXISTS case_embeddings (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    case_id BIGINT REFERENCES bidding_cases(case_id) ON DELETE CASCADE,
+    case_id BIGINT UNIQUE REFERENCES bidding_cases(case_id) ON DELETE CASCADE,
 
     -- ベクトルデータ（次元数は使用するembeddingモデルに応じて調整）
-    case_name_embedding vector(1536),  -- OpenAI text-embedding-ada-002の場合
-    overview_embedding vector(1536),
-    combined_embedding vector(1536),   -- case_name + overview の組み合わせ
+    case_name_embedding vector(3072),  -- OpenAI text-embedding-3-large の場合
+    overview_embedding vector(3072),
+    combined_embedding vector(3072),   -- case_name + overview の組み合わせ
 
     -- メタデータ
-    embedding_model TEXT DEFAULT 'text-embedding-ada-002',
+    embedding_model TEXT DEFAULT 'text-embedding-3-large',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
