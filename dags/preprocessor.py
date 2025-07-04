@@ -6,11 +6,10 @@ import json
 import re
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import logging
 import sys
 import time
-
 
 from sql_connection import PostgreSQLConnection
 
@@ -281,6 +280,66 @@ class QualificationParser:
             'confidence_score': round(avg_confidence, 2)
         }
 
+
+class BiddingEligibilityChecker:
+    """入札資格判定クラス"""
+
+    def __init__(self):
+        # 入札可能なランク（D、ランク無し、ランク不明）
+        self.eligible_levels = ['level_d', 'no_rank', 'unknown_rank']
+
+    def check_eligibility(self, qualifications: List[Dict[str, Any]],
+                         qualification_summary: Dict[str, Any]) -> Tuple[bool, str, List[str]]:
+        """
+        入札可能かどうかを判定
+
+        Returns:
+            Tuple[bool, str, List[str]]: (入札可否, 判定理由, 詳細理由リスト)
+        """
+
+        # 資格不要の場合は入札可能
+        if qualification_summary.get('has_no_qualification_required'):
+            return True, "資格不要案件のため入札可能", ["資格要件: 不要"]
+
+        # 資格要件が空の場合は入札不可
+        if not qualifications:
+            return False, "資格要件が不明のため入札不可", ["資格要件が記載されていません"]
+
+        eligible_qualifications = []
+        ineligible_qualifications = []
+
+        for qual in qualifications:
+            level = qual.get('level_normalized')
+
+            # レベルが不明な資格は除外
+            if not level:
+                continue
+
+            # 各資格要件をチェック
+            if level in self.eligible_levels:
+                eligible_qualifications.append(
+                    f"✓ {qual.get('organization', '不明')} - {qual.get('category', '不明')} - {qual.get('level', '不明')}"
+                )
+            else:
+                ineligible_qualifications.append(
+                    f"✗ {qual.get('organization', '不明')} - {qual.get('category', '不明')} - {qual.get('level', '不明')}"
+                )
+
+        # 判定結果
+        if ineligible_qualifications:
+            # 入札不可能な資格要件が一つでもある場合
+            reason = f"入札不可（要求ランクが高い: {len(ineligible_qualifications)}件）"
+            details = ineligible_qualifications + eligible_qualifications
+            return False, reason, details
+        elif eligible_qualifications:
+            # すべての資格要件が入札可能な場合
+            reason = f"入札可能（すべての要件を満たす: {len(eligible_qualifications)}件）"
+            return True, reason, eligible_qualifications
+        else:
+            # 判定不能な場合
+            return False, "資格要件の解析に失敗", ["資格要件の形式が認識できません"]
+
+
 class DataNormalizer:
     """データ正規化クラス"""
 
@@ -387,6 +446,45 @@ class DataNormalizer:
                     business_types.append("B99")
 
         return list(set(business_types))
+    
+    def extract_business_types_with_codes(self, business_str: str) -> tuple[List[str], List[str]]:
+        """業種名と業種コードを抽出"""
+        if not business_str or pd.isna(business_str):
+            return [], []
+
+        business_names = []
+        business_codes = []
+        lines = str(business_str).split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if line:
+                found_code = None
+                found_name = None
+                for business_name, code in self.business_code_map.items():
+                    if business_name in line:
+                        found_code = code
+                        found_name = business_name
+                        break
+
+                if found_code:
+                    business_codes.append(found_code)
+                    business_names.append(found_name)
+                else:
+                    business_codes.append("B99")
+                    business_names.append(line)
+
+        # Remove duplicates while preserving order
+        seen_codes = set()
+        unique_codes = []
+        unique_names = []
+        for code, name in zip(business_codes, business_names):
+            if code not in seen_codes:
+                seen_codes.add(code)
+                unique_codes.append(code)
+                unique_names.append(name)
+
+        return unique_names, unique_codes
 
     def extract_prefecture(self, location_str: str) -> Optional[str]:
         """都道府県を抽出"""
@@ -410,6 +508,7 @@ class DataNormalizer:
                 return match.group(1)
         return None
 
+
 class BiddingDataManager:
     """入札データ管理・DB保存クラス"""
 
@@ -417,6 +516,7 @@ class BiddingDataManager:
         self.db = db_connection
         self.qualification_parser = QualificationParser()
         self.data_normalizer = DataNormalizer()
+        self.eligibility_checker = BiddingEligibilityChecker()
 
     def log_job_execution(self, job_name: str, status: str, **kwargs):
         """ジョブ実行ログを記録"""
@@ -456,6 +556,7 @@ class BiddingDataManager:
                     pricing = data.get('pricing', {})
                     award_info = data.get('award_info', {})
                     processing_info = data.get('processing_info', {})
+                    eligibility = data.get('eligibility', {})
 
                     cursor.execute("""
                         INSERT INTO bidding_cases (
@@ -464,17 +565,18 @@ class BiddingDataManager:
                             announcement_date, bidding_date, document_submission_date,
                             briefing_date, award_announcement_date, award_date,
                             qualifications_raw, qualifications_parsed, qualifications_summary,
-                            business_types_raw, business_types_normalized,
+                            business_types_raw, business_types_normalized, business_type, business_type_code,
                             overview, remarks,
                             planned_price_raw, planned_price_normalized, planned_unit_price,
                             award_price_raw, award_price_normalized, award_unit_price, main_price,
                             winning_company, winning_company_address, winning_reason,
                             winning_score, award_remarks, bid_result_details, unsuccessful_bid,
-                            processed_at, qualification_confidence
+                            processed_at, qualification_confidence,
+                            is_eligible_to_bid, eligibility_reason, eligibility_details
                         ) VALUES (
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                         )
                         ON CONFLICT (case_id) DO UPDATE SET
                             case_name = EXCLUDED.case_name,
@@ -496,6 +598,8 @@ class BiddingDataManager:
                             qualifications_summary = EXCLUDED.qualifications_summary,
                             business_types_raw = EXCLUDED.business_types_raw,
                             business_types_normalized = EXCLUDED.business_types_normalized,
+                            business_type = EXCLUDED.business_type,
+                            business_type_code = EXCLUDED.business_type_code,
                             overview = EXCLUDED.overview,
                             remarks = EXCLUDED.remarks,
                             planned_price_raw = EXCLUDED.planned_price_raw,
@@ -514,6 +618,9 @@ class BiddingDataManager:
                             unsuccessful_bid = EXCLUDED.unsuccessful_bid,
                             processed_at = EXCLUDED.processed_at,
                             qualification_confidence = EXCLUDED.qualification_confidence,
+                            is_eligible_to_bid = EXCLUDED.is_eligible_to_bid,
+                            eligibility_reason = EXCLUDED.eligibility_reason,
+                            eligibility_details = EXCLUDED.eligibility_details,
                             updated_at = NOW()
                     """, (
                         data.get('case_id'),
@@ -536,6 +643,8 @@ class BiddingDataManager:
                         json.dumps(qualifications.get('requirements_summary')) if qualifications.get('requirements_summary') else None,
                         qualifications.get('business_types_raw'),
                         qualifications.get('business_types_normalized'),
+                        qualifications.get('business_type'),
+                        qualifications.get('business_type_code'),
                         content.get('overview'),
                         content.get('remarks'),
                         pricing.get('planned_price_raw'),
@@ -553,7 +662,10 @@ class BiddingDataManager:
                         json.dumps(award_info.get('bid_result_details')) if award_info.get('bid_result_details') else None,
                         award_info.get('unsuccessful_bid'),
                         processing_info.get('processed_at'),
-                        processing_info.get('qualification_confidence')
+                        processing_info.get('qualification_confidence'),
+                        eligibility.get('is_eligible'),
+                        eligibility.get('reason'),
+                        json.dumps(eligibility.get('details')) if eligibility.get('details') else None
                     ))
                     conn.commit()
                     return True
@@ -568,7 +680,9 @@ class BiddingDataManager:
             'processed': 0,
             'saved': 0,
             'failed': 0,
-            'skipped': 0
+            'skipped': 0,
+            'eligible_count': 0,  # 入札可能案件数
+            'ineligible_count': 0  # 入札不可案件数
         }
 
         try:
@@ -602,6 +716,19 @@ class BiddingDataManager:
                     qualifications = self.qualification_parser.extract_qualifications(qualification_text)
                     qualification_summary = self.qualification_parser.get_qualification_summary(qualifications)
 
+                    # 入札可否判定
+                    is_eligible, eligibility_reason, eligibility_details = self.eligibility_checker.check_eligibility(
+                        qualifications, qualification_summary
+                    )
+
+                    # 統計更新
+                    if is_eligible:
+                        stats['eligible_count'] += 1
+                        logger.info(f"入札可能: {case_id} - {row.get('案件名')} - {eligibility_reason}")
+                    else:
+                        stats['ineligible_count'] += 1
+                        logger.info(f"入札不可: {case_id} - {row.get('案件名')} - {eligibility_reason}")
+
                     # データ構造作成
                     processed_data = {
                         'case_id': case_id,
@@ -631,7 +758,9 @@ class BiddingDataManager:
                             'requirements_parsed': qualifications,
                             'requirements_summary': qualification_summary,
                             'business_types_raw': row.get('業種') if not pd.isna(row.get('業種')) else None,
-                            'business_types_normalized': normalized_data['business_types']
+                            'business_types_normalized': normalized_data['business_types'],
+                            'business_type': normalized_data['business_type_names'],
+                            'business_type_code': normalized_data['business_type_codes']
                         },
 
                         'content': {
@@ -662,6 +791,12 @@ class BiddingDataManager:
                         'processing_info': {
                             'processed_at': datetime.now().isoformat(),
                             'qualification_confidence': qualification_summary['confidence_score']
+                        },
+
+                        'eligibility': {
+                            'is_eligible': is_eligible,
+                            'reason': eligibility_reason,
+                            'details': eligibility_details
                         }
                     }
 
@@ -715,6 +850,9 @@ class BiddingDataManager:
         if normalized_price is None:
             normalized_price = self.data_normalizer.normalize_price(row.get('予定価格'))
 
+        # 業種情報の抽出
+        business_names, business_codes = self.data_normalizer.extract_business_types_with_codes(row.get('業種'))
+
         return {
             'announcement_date': self.data_normalizer.normalize_date(row.get('案件公示日')),
             'bidding_date': self.data_normalizer.normalize_date(row.get('入札日')),
@@ -725,8 +863,11 @@ class BiddingDataManager:
             'normalized_planned_price': self.data_normalizer.normalize_price(row.get('予定価格')),
             'normalized_award_price': self.data_normalizer.normalize_price(row.get('落札価格')),
             'business_types': self.data_normalizer.normalize_business_types(row.get('業種')),
+            'business_type_names': business_names,
+            'business_type_codes': business_codes,
             'prefecture': self.data_normalizer.extract_prefecture(row.get('機関所在地'))
         }
+
 
 def main():
     """メイン実行関数"""
@@ -760,6 +901,8 @@ def main():
         logger.info(f"  保存成功: {results['saved']}")
         logger.info(f"  保存失敗: {results['failed']}")
         logger.info(f"  スキップ: {results['skipped']}")
+        logger.info(f"  入札可能案件: {results['eligible_count']}")
+        logger.info(f"  入札不可案件: {results['ineligible_count']}")
         logger.info("=" * 60)
 
         print("✅ CSV処理・DB保存が完了しました")
@@ -767,6 +910,7 @@ def main():
     except Exception as e:
         logger.error(f"処理エラー: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
