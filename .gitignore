@@ -1,9 +1,14 @@
-postgres_data
-logs
-plugins
-config
+docker_volumes
 data
 
 .DS_Store
 __pycache__
 *.pyc
+.env
+
+htmlcov
+api/automation_jp_procurement_api.egg**
+
+# Web environment files
+web/.env
+web/public
