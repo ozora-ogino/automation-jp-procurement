@@ -28,16 +28,32 @@ class BiddingCaseRepository:
     def get_by_case_id(self, case_id: str) -> Optional[BiddingCase]:
         return self.db.query(BiddingCase).filter(BiddingCase.case_id == case_id).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100, eligible_only: bool = False) -> List[BiddingCase]:
+    def get_all(self, skip: int = 0, limit: int = 100, eligible_only: bool = False, eligibility_filter: str = None) -> List[BiddingCase]:
         query = self.db.query(BiddingCase)
-        if eligible_only:
+        
+        # Handle backward compatibility
+        if eligible_only and eligibility_filter is None:
+            eligibility_filter = "eligible"
+            
+        if eligibility_filter == "eligible":
             query = query.filter(BiddingCase.is_eligible_to_bid == True)
+        elif eligibility_filter == "ineligible":
+            query = query.filter(BiddingCase.is_eligible_to_bid == False)
+            
         return query.offset(skip).limit(limit).all()
 
-    def count(self, eligible_only: bool = False) -> int:
+    def count(self, eligible_only: bool = False, eligibility_filter: str = None) -> int:
         query = self.db.query(func.count(BiddingCase.id))
-        if eligible_only:
+        
+        # Handle backward compatibility
+        if eligible_only and eligibility_filter is None:
+            eligibility_filter = "eligible"
+            
+        if eligibility_filter == "eligible":
             query = query.filter(BiddingCase.is_eligible_to_bid == True)
+        elif eligibility_filter == "ineligible":
+            query = query.filter(BiddingCase.is_eligible_to_bid == False)
+            
         return query.scalar()
 
     def update(self, case_id: UUID, case_update: BiddingCaseUpdate) -> Optional[BiddingCase]:

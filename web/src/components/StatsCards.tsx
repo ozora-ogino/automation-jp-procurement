@@ -22,8 +22,8 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, loading }) => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -45,24 +45,6 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, loading }) => {
       bgColor: 'bg-blue-50',
     },
     {
-      title: '総予定価格',
-      value: formatCurrency(stats.total_value),
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      title: '進行中案件',
-      value: formatNumber(stats.active_cases),
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-    },
-    {
-      title: '平均落札価格',
-      value: formatCurrency(stats.average_winning_price),
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    },
-    {
       title: '入札可能案件',
       value: formatNumber(stats.eligible_cases),
       color: 'text-green-600',
@@ -77,7 +59,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats, loading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card, index) => (
         <div key={index} className="bg-white rounded-lg shadow p-6">
           <p className="text-sm font-medium text-gray-600">{card.title}</p>

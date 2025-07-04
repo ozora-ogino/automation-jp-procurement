@@ -76,6 +76,7 @@ export interface SearchParams {
   industry_type?: string;
   status?: string;
   eligible_only?: boolean;
+  eligibility_filter?: 'all' | 'eligible' | 'ineligible';
   date_from?: string;
   date_to?: string;
   price_min?: number;

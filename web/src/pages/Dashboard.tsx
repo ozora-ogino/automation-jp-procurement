@@ -6,6 +6,7 @@ import StatsCards from '../components/StatsCards';
 import Charts from '../components/Charts';
 import SearchBar from '../components/SearchBar';
 import Filters from '../components/Filters';
+import QuickFilters from '../components/QuickFilters';
 import { SearchParams } from '../types/bidding';
 
 const Dashboard: React.FC = () => {
@@ -32,6 +33,11 @@ const Dashboard: React.FC = () => {
     setSearchParams(prev => ({ ...prev, ...filters, page: 1 }));
   };
 
+  const handleQuickFilterApply = (filters: SearchParams) => {
+    // For QuickFilters, we replace the entire filter state to handle deletions
+    setSearchParams({ ...filters, page: 1 });
+  };
+
   const handlePageChange = (page: number) => {
     setSearchParams(prev => ({ ...prev, page }));
   };
@@ -46,6 +52,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       <StatsCards stats={statsData} loading={statsLoading} />
+
+      <QuickFilters 
+        onFilterApply={handleQuickFilterApply} 
+        currentFilters={searchParams} 
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">

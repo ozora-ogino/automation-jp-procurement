@@ -94,14 +94,19 @@ async def create_bidding_case(
 async def list_bidding_cases(
     page: int = Query(1, ge=1, alias="page"),
     limit: int = Query(20, ge=1, le=100, alias="limit"),
-    eligible_only: bool = Query(False, description="Filter for eligible cases only"),
+    eligible_only: bool = Query(None, description="Filter for eligible cases only (deprecated, use eligibility_filter)"),
+    eligibility_filter: str = Query(None, description="Filter by eligibility: 'all', 'eligible', 'ineligible'"),
     db: Session = Depends(get_db)
 ):
     repo = BiddingCaseRepository(db)
     skip = (page - 1) * limit
 
-    cases = repo.get_all(skip=skip, limit=limit, eligible_only=eligible_only)
-    total = repo.count(eligible_only=eligible_only)
+    # Handle backward compatibility with eligible_only parameter
+    if eligible_only is not None and eligibility_filter is None:
+        eligibility_filter = "eligible" if eligible_only else None
+
+    cases = repo.get_all(skip=skip, limit=limit, eligibility_filter=eligibility_filter)
+    total = repo.count(eligibility_filter=eligibility_filter)
 
     return BiddingCaseListResponse(
         cases=[map_to_frontend_response(case) for case in cases],

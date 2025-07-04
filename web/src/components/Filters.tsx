@@ -8,7 +8,14 @@ interface FiltersProps {
 
 const Filters: React.FC<FiltersProps> = ({ filters, onFilterChange }) => {
   const handleChange = (field: keyof SearchParams, value: any) => {
-    onFilterChange({ ...filters, [field]: value });
+    // Toggle off if the same value is selected (for select elements)
+    if (filters[field] === value && value !== '' && value !== undefined) {
+      const newFilters = { ...filters };
+      delete newFilters[field];
+      onFilterChange(newFilters);
+    } else {
+      onFilterChange({ ...filters, [field]: value });
+    }
   };
 
   return (
@@ -69,12 +76,34 @@ const Filters: React.FC<FiltersProps> = ({ filters, onFilterChange }) => {
             入札可否
           </label>
           <select
-            value={filters.eligible_only ? 'eligible' : 'all'}
-            onChange={(e) => handleChange('eligible_only', e.target.value === 'eligible')}
+            value={filters.eligibility_filter || 'all'}
+            onChange={(e) => {
+              const value = e.target.value as 'all' | 'eligible' | 'ineligible';
+              if (value === 'all') {
+                const newFilters = { ...filters };
+                delete newFilters.eligibility_filter;
+                delete newFilters.eligible_only; // Remove legacy parameter
+                onFilterChange(newFilters);
+              } else {
+                // Toggle off if same value is selected
+                if (filters.eligibility_filter === value) {
+                  const newFilters = { ...filters };
+                  delete newFilters.eligibility_filter;
+                  delete newFilters.eligible_only;
+                  onFilterChange(newFilters);
+                } else {
+                  const newFilters = { ...filters };
+                  delete newFilters.eligible_only; // Remove legacy parameter
+                  newFilters.eligibility_filter = value;
+                  onFilterChange(newFilters);
+                }
+              }
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">すべて</option>
             <option value="eligible">入札可能のみ</option>
+            <option value="ineligible">入札不可能のみ</option>
           </select>
         </div>
 
