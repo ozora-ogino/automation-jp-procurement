@@ -6,6 +6,7 @@ from airflow.operators.python import PythonOperator
 from crawler import TempCrawler
 from preprocessor import main as preprocessor_main
 from text_embedding import main as text_embeddgin_main
+from llm import main as llm_main
 
 
 dag = DAG(
@@ -26,4 +27,8 @@ text_embed_op = PythonOperator(task_id="text_embedding",
                          python_callable=text_embeddgin_main,
                          dag=dag)
 
-crawl_op >> preprocess_op >> text_embed_op
+llm_inference_op = PythonOperator(task_id="llm_inference",
+                         python_callable=llm_main,
+                         dag=dag)
+
+crawl_op >> preprocess_op >> text_embed_op >> llm_inference_op
