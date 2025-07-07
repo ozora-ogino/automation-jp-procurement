@@ -3,6 +3,15 @@
 -- 初回実行時のみ使用するスクリプト
 -- ============================================================================
 
+-- 0. Airflow用データベースの作成
+-- Note: This needs to be run as a superuser
+-- Create the airflow database if it doesn't exist
+\c postgres
+CREATE DATABASE airflow;
+
+-- Switch back to the main database
+\c "automation-jp-procurement"
+
 -- 1. 必要な拡張機能を有効化
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -138,18 +147,23 @@ CREATE INDEX idx_bidding_cases_search_vector ON bidding_cases USING GIN(search_v
 CREATE INDEX idx_bidding_cases_business_types ON bidding_cases USING GIN(business_types_normalized);
 CREATE INDEX idx_bidding_cases_eligibility_details ON bidding_cases USING GIN(eligibility_details);
 
--- ベクトル検索用インデックス（HNSW）
-CREATE INDEX idx_case_embeddings_case_name ON case_embeddings
-    USING hnsw (case_name_embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64);
+-- ベクトル検索用インデックス（IVFFlat - 3072次元をサポート）
+-- Note: IVFFlatインデックスは、テーブルに十分なデータがある場合に作成する必要があります
+-- 初期セットアップ時はコメントアウトし、データ投入後に作成することを推奨
+-- CREATE INDEX idx_case_embeddings_case_name ON case_embeddings
+--     USING ivfflat (case_name_embedding vector_cosine_ops)
+--     WITH (lists = 100);
+--
+-- CREATE INDEX idx_case_embeddings_overview ON case_embeddings
+--     USING ivfflat (overview_embedding vector_cosine_ops)
+--     WITH (lists = 100);
+--
+-- CREATE INDEX idx_case_embeddings_combined ON case_embeddings
+--     USING ivfflat (combined_embedding vector_cosine_ops)
+--     WITH (lists = 100);
 
-CREATE INDEX idx_case_embeddings_overview ON case_embeddings
-    USING hnsw (overview_embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64);
-
-CREATE INDEX idx_case_embeddings_combined ON case_embeddings
-    USING hnsw (combined_embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64);
+-- 代替案: btreeインデックスを使用（完全一致検索用）
+CREATE INDEX idx_case_embeddings_case_id_btree ON case_embeddings(case_id);
 
 -- 7. 全文検索用のトリガー関数
 CREATE OR REPLACE FUNCTION update_search_vector()
