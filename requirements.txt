@@ -12,3 +12,14 @@ requests==2.31.0
 
 apache-airflow-providers-postgres==5.7.1
 apache-airflow-providers-http==4.6.0
+
+playwright==1.53.0
+aiofiles==24.1.0
+selenium==4.15.2
+undetected-chromedriver==3.5.5
+
+# For data processing
+pandas==2.1.4
+
+# For environment variables
+python-dotenv==1.0.0
