@@ -19,7 +19,9 @@ services:
       start_period: 5s
 
   airflow-webserver:
-    image: apache/airflow:2.10.3-python3.12
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow_webserver
     restart: unless-stopped
     depends_on:
@@ -39,12 +41,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NJSS_USERNAME: ${NJSS_USERNAME}
+      NJSS_PASSWORD: ${NJSS_PASSWORD}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./docker_volumes/logs:/opt/airflow/logs
       - ./docker_volumes/config:/opt/airflow/config
       - ./docker_volumes/plugins:/opt/airflow/plugins
-      - ./data:/opt/airflow/data
+      - ./data:/opt/airflow/csv_data
       - ./requirements.txt:/opt/airflow/requirements.txt:ro
     ports:
       - "${AIRFLOW_WEBSERVER_PORT}:8080"
@@ -108,7 +112,9 @@ services:
       start_period: 30s
 
   airflow-scheduler:
-    image: apache/airflow:2.10.3-python3.12
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow_scheduler
     restart: unless-stopped
     depends_on:
@@ -128,12 +134,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NJSS_USERNAME: ${NJSS_USERNAME}
+      NJSS_PASSWORD: ${NJSS_PASSWORD}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./docker_volumes/logs:/opt/airflow/logs
       - ./docker_volumes/config:/opt/airflow/config
       - ./docker_volumes/plugins:/opt/airflow/plugins
-      - ./data:/opt/airflow/data
+      - ./data:/opt/airflow/csv_data
       - ./requirements.txt:/opt/airflow/requirements.txt:ro
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8974/health" ]
