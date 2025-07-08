@@ -12,6 +12,7 @@ import sys
 import time
 
 from sql_connection import PostgreSQLConnection
+from consts import CSV_FILE_PATH
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -446,7 +447,7 @@ class DataNormalizer:
                     business_types.append("B99")
 
         return list(set(business_types))
-    
+
     def extract_business_types_with_codes(self, business_str: str) -> tuple[List[str], List[str]]:
         """業種名と業種コードを抽出"""
         if not business_str or pd.isna(business_str):
@@ -886,7 +887,7 @@ def main():
         manager = BiddingDataManager(db_connection)
 
         # CSVファイルパス（実際のパスに変更してください）
-        csv_path = "./data/sample.csv"
+        csv_path = CSV_FILE_PATH
 
         if not os.path.exists(csv_path):
             logger.error(f"CSVファイルが見つかりません: {csv_path}")
