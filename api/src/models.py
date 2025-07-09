@@ -72,6 +72,12 @@ class BiddingCase(Base):
     eligibility_details = Column(JSON)
     eligibility_reason = Column(Text)
     
+    # Document info
+    document_directory = Column(Text)
+    document_count = Column(Integer, default=0)
+    downloaded_count = Column(Integer, default=0)
+    documents = Column(JSON)  # Array of document info: [{name, type, url, path}]
+    
     # Metadata
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

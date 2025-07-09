@@ -129,6 +129,12 @@ class BiddingCaseUpdate(BaseModel):
     is_eligible_to_bid: Optional[bool] = None
     eligibility_details: Optional[Any] = None
     eligibility_reason: Optional[str] = None
+    
+    # Document info
+    document_directory: Optional[str] = None
+    document_count: Optional[int] = None
+    downloaded_count: Optional[int] = None
+    documents: Optional[List[Any]] = None
 
 
 class BiddingCaseResponse(BiddingCaseBase):
@@ -191,6 +197,12 @@ class BiddingCaseFrontendResponse(BaseModel):
     unsuccessful_bid: Optional[str] = None
     processed_at: Optional[str] = None
     qualification_confidence: Optional[float] = None
+    
+    # Document info
+    document_directory: Optional[str] = None
+    document_count: Optional[int] = None
+    downloaded_count: Optional[int] = None
+    documents: Optional[List[Any]] = None
     
     model_config = ConfigDict(from_attributes=True)
 

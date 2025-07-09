@@ -69,7 +69,12 @@ def map_to_frontend_response(case) -> BiddingCaseFrontendResponse:
         bid_result_details=case.bid_result_details,
         unsuccessful_bid=case.unsuccessful_bid,
         processed_at=case.processed_at.isoformat() if case.processed_at else None,
-        qualification_confidence=case.qualification_confidence
+        qualification_confidence=case.qualification_confidence,
+        # Document fields
+        document_directory=case.document_directory,
+        document_count=case.document_count,
+        downloaded_count=case.downloaded_count,
+        documents=case.documents
     )
 
 
@@ -116,7 +121,7 @@ async def list_bidding_cases(
     )
 
 
-@router.get("/cases/{case_id}", response_model=BiddingCaseResponse)
+@router.get("/cases/{case_id}", response_model=BiddingCaseFrontendResponse)
 async def get_bidding_case(
     case_id: UUID,
     db: Session = Depends(get_db)
@@ -127,10 +132,7 @@ async def get_bidding_case(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    return BiddingCaseResponse(
-        **case.__dict__,
-        has_embedding=bool(case.embedding)
-    )
+    return map_to_frontend_response(case)
 
 
 @router.get("/cases/by-case-id/{case_id}", response_model=BiddingCaseResponse)
