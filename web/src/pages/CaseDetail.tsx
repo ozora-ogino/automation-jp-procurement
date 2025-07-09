@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { biddingAPI } from '../services/api';
+import DocumentsSection from '../components/DocumentsSection';
 
 const CaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -421,6 +422,21 @@ const CaseDetail: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Documents Section */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">文書情報</h2>
+        </div>
+        <div className="px-6 py-4">
+          <DocumentsSection
+            documents={caseData.documents}
+            documentCount={caseData.document_count}
+            downloadedCount={caseData.downloaded_count}
+            documentDirectory={caseData.document_directory}
+          />
+        </div>
+      </div>
 
       {similarCases && similarCases.length > 0 && (
         <div className="bg-white shadow rounded-lg overflow-hidden">

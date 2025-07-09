@@ -49,6 +49,18 @@ export interface BiddingCase {
   unsuccessful_bid?: string;
   processed_at?: string;
   qualification_confidence?: number;
+  
+  // Document fields
+  document_directory?: string;
+  document_count?: number;
+  downloaded_count?: number;
+  documents?: Array<{
+    name: string;
+    type: string;
+    url: string;
+    index: number;
+    anken_id: string;
+  }>;
 }
 
 export interface BiddingStats {
