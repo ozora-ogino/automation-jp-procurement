@@ -88,6 +88,12 @@ CREATE TABLE bidding_cases (
     eligibility_reason TEXT,
     eligibility_details JSONB,
 
+    -- 文書情報
+    document_directory TEXT,
+    document_count INTEGER DEFAULT 0,
+    downloaded_count INTEGER DEFAULT 0,
+    documents JSONB,
+
     -- メタデータ
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
