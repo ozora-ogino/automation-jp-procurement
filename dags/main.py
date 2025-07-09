@@ -7,6 +7,7 @@ from crawler import main as crawler_main
 from preprocessor import main as preprocessor_main
 from text_embedding import main as text_embeddgin_main
 from llm import main as llm_main
+from pdf_downloader import download_njss_multi_docs
 
 
 dag = DAG(
@@ -24,6 +25,13 @@ crawl_op = PythonOperator(
     dag=dag
 )
 
+# Download documents after crawling
+download_docs_op = PythonOperator(
+    task_id="download_documents",
+    python_callable=download_njss_multi_docs,
+    dag=dag
+)
+
 preprocess_op = PythonOperator(task_id="preprocess",
                          python_callable=preprocessor_main,
                          dag=dag)
@@ -36,4 +44,4 @@ llm_inference_op = PythonOperator(task_id="llm_inference",
                          python_callable=llm_main,
                          dag=dag)
 
-crawl_op >> preprocess_op >> text_embed_op >> llm_inference_op
+crawl_op >> download_docs_op >> preprocess_op >> text_embed_op >> llm_inference_op

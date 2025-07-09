@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from playwright.async_api import async_playwright, Page, BrowserContext, Download
-from consts import CSV_FILE_PATH, DATA_DIR
+from consts import CSV_FILE_PATH, DATA_DIR, PLAYWRIGHT_UA
 
 try:
     from .njss_auth_config import NJSSAuthConfig, NJSS_SELECTORS
@@ -73,13 +73,14 @@ class NJSSCrawler:
     async def _setup_browser(self):
         """Setup browser with required configurations."""
         self.playwright = await async_playwright().start()
-        
-        # Use minimal configuration that works in Docker (from multi-strategy crawler)
+
+        # Use minimal configuration that works in Docker with fixed User-Agent
         browser_args = [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
+            '--disable-setuid-sandbox',
+            f'--user-agent={PLAYWRIGHT_UA}'  # Fixed UA to prevent "new device" detection
         ]
-        
+
         # Check for system Chrome/Chromium
         executable_path = None
         for path in ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome']:
@@ -87,16 +88,17 @@ class NJSSCrawler:
                 executable_path = path
                 logger.info(f"Using system browser: {path}")
                 break
-        
+
         self.browser = await self.playwright.chromium.launch(
             headless=self.headless,
             executable_path=executable_path,
             args=browser_args
         )
-        
-        # Use simpler context configuration
+
+        # Use context configuration with fixed User-Agent
         self.context = await self.browser.new_context(
-            viewport={'width': 1920, 'height': 1080}
+            viewport={'width': 1920, 'height': 1080},
+            user_agent=PLAYWRIGHT_UA  # Also set UA in context for consistency
         )
 
     async def _cleanup(self):
@@ -131,24 +133,24 @@ class NJSSCrawler:
 
             # Fill credentials properly
             logger.info(f"Filling username field with: {self.username}")
-            
+
             # Find and fill username field
             username_field = await page.query_selector(NJSS_SELECTORS['login']['username'])
             if not username_field:
                 logger.error("Username field not found!")
                 raise Exception("Cannot find username field")
-            
+
             await username_field.click()
             await username_field.fill('')  # Clear any existing value
             await username_field.type(self.username, delay=50)  # Type with delay
-            
+
             # Find and fill password field
             logger.info("Filling password field...")
             password_field = await page.query_selector(NJSS_SELECTORS['login']['password'])
             if not password_field:
                 logger.error("Password field not found!")
                 raise Exception("Cannot find password field")
-            
+
             await password_field.click()
             await password_field.fill('')  # Clear any existing value
             await password_field.type(self.password, delay=50)  # Type with delay
@@ -163,7 +165,7 @@ class NJSSCrawler:
 
             # Wait a bit to ensure form is ready
             await page.wait_for_timeout(1000)
-            
+
             # Check if there's any JavaScript validation we need to trigger
             await page.evaluate("""
                 // Trigger any change events on the form fields
@@ -178,23 +180,23 @@ class NJSSCrawler:
                     passField.dispatchEvent(new Event('blur', { bubbles: true }));
                 }
             """)
-            
+
             # Submit login by clicking the button
             logger.info("Looking for login submit button...")
-            
+
             # Find submit button
             submit_button = await page.query_selector(NJSS_SELECTORS['login']['submit'])
             if not submit_button:
                 # Try alternative selectors
                 submit_button = await page.query_selector('button[type="submit"], input[type="submit"], button:has-text("ログイン")')
-            
+
             if not submit_button:
                 logger.error("Submit button not found!")
                 raise Exception("Cannot find submit button")
-            
+
             logger.info("Clicking submit button...")
             await submit_button.click()
-            
+
             # Wait for navigation
             try:
                 await page.wait_for_navigation(timeout=15000)
@@ -225,7 +227,7 @@ class NJSSCrawler:
                     error_text = await error_elem.text_content()
                     if error_text and error_text.strip():
                         logger.error(f"Login error message found ({selector}): {error_text.strip()}")
-                
+
             # Save page HTML for debugging
             if not self.headless or current_url == self.login_url:
                 html_path = f"/tmp/njss_login_page_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
@@ -236,29 +238,29 @@ class NJSSCrawler:
 
             # Wait a bit more for any redirects to complete
             await page.wait_for_timeout(3000)
-            
+
             # Get final URL after all redirects
             final_url = page.url
             logger.info(f"Final URL after login: {final_url}")
-            
+
             # Check if login was successful
             # According to user, successful login redirects to /users/home
             if '/users/home' in final_url:
                 logger.info("Login successful - redirected to /users/home!")
-                
+
                 # Store cookies for later use
                 self.cookies = await self.context.cookies()
                 logger.info(f"Stored {len(self.cookies)} cookies after login")
-                
+
                 return True
             elif '/users/' in final_url and '/users/login' not in final_url:
                 # We're in the users area but not on login page
                 logger.info(f"Login successful - in users area: {final_url}")
-                
+
                 # Store cookies for later use
                 self.cookies = await self.context.cookies()
                 logger.info(f"Stored {len(self.cookies)} cookies after login")
-                
+
                 return True
             elif 'njss.info' in final_url and '/users/login' not in final_url:
                 # We're on NJSS but not in users area - this is wrong according to user
@@ -269,18 +271,18 @@ class NJSSCrawler:
                 # Debug: Log some page content
                 page_text = await page.evaluate('() => document.body.innerText')
                 logger.info(f"Page text (first 500 chars): {page_text[:500]}")
-                
+
                 # Check if we can find login form elements to understand the issue
                 form_exists = await page.query_selector('form')
                 email_field = await page.query_selector(NJSS_SELECTORS['login']['username'])
                 password_field = await page.query_selector(NJSS_SELECTORS['login']['password'])
-                
+
                 if form_exists and email_field and password_field:
                     # Check if fields still have values
                     email_value = await email_field.get_attribute('value')
                     password_value = await password_field.get_attribute('value')
                     logger.info(f"Form still exists. Email field has value: {bool(email_value)}, Password field has value: {bool(password_value)}")
-                
+
                 logger.error("Login failed - could not verify successful login")
                 return False
 
@@ -719,11 +721,11 @@ class NJSSHomeCrawler(NJSSCrawler):
             # Wait for initial page to load
             await page.wait_for_load_state('networkidle')
             await page.wait_for_timeout(2000)
-            
+
             # Check current URL after login
             current_url = page.url
             logger.info(f"Current URL after login: {current_url}")
-            
+
             # If login was successful, we should already be on /users/home
             if '/users/home' in current_url:
                 logger.info("Already on /users/home page after login")
@@ -741,7 +743,7 @@ class NJSSHomeCrawler(NJSSCrawler):
             # Log current URL to understand where we are
             current_url = page.url
             logger.info(f"Current URL after navigation: {current_url}")
-            
+
             # Take screenshot for debugging
             screenshot_path = f"/tmp/njss_users_home_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
             await page.screenshot(path=screenshot_path)
@@ -768,14 +770,14 @@ class NJSSHomeCrawler(NJSSCrawler):
                 'button[title*="ダウンロード"]',
                 'a[title*="ダウンロード"]'
             ]
-            
+
             download_buttons = []
             for selector in download_selectors:
                 buttons = await page.query_selector_all(selector)
                 if buttons:
                     logger.info(f"Found {len(buttons)} buttons with selector: {selector}")
                     download_buttons.extend(buttons)
-            
+
             # Remove duplicates
             unique_buttons = []
             for btn in download_buttons:
@@ -784,35 +786,35 @@ class NJSSHomeCrawler(NJSSCrawler):
             download_buttons = unique_buttons
 
             logger.info(f"Found total {len(download_buttons)} download buttons")
-            
+
             # Log page structure on users/home
             logger.info("Analyzing users/home page structure...")
-            
+
             # Check page title
             page_title = await page.title()
             logger.info(f"Page title: {page_title}")
-            
+
             # Check if we're really on the users/home page
             if '/users/home' not in current_url:
                 logger.warning(f"Not on users/home page. Current URL: {current_url}")
-                
+
                 # If redirected to login, session was lost
                 if '/users/login' in current_url:
                     logger.error("Session lost - redirected back to login page after navigation")
-                    
+
                     # Save page HTML for debugging
                     html_path = f"/tmp/njss_redirect_page_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
                     page_html = await page.content()
                     with open(html_path, 'w', encoding='utf-8') as f:
                         f.write(page_html)
                     logger.info(f"Redirect page HTML saved: {html_path}")
-                    
+
                     raise Exception("Session not maintained - please login correctly")
-            
+
             # If no download buttons found, let's explore the page
             if len(download_buttons) == 0:
                 logger.info("No download buttons found. Exploring page structure...")
-                
+
                 # Log all links on the page
                 all_links = await page.query_selector_all('a')
                 logger.info(f"Found {len(all_links)} links on page")
@@ -820,17 +822,17 @@ class NJSSHomeCrawler(NJSSCrawler):
                     href = await link.get_attribute('href')
                     text = await link.text_content()
                     logger.info(f"Link {i}: text='{text}', href='{href}'")
-                
+
                 # Log all buttons
                 all_buttons = await page.query_selector_all('button')
                 logger.info(f"Found {len(all_buttons)} buttons on page")
                 for i, button in enumerate(all_buttons[:10]):  # First 10 buttons
                     text = await button.text_content()
                     logger.info(f"Button {i}: text='{text}'")
-                
+
                 # Look for "入札案件の検索条件結果" section and its download button
                 logger.info("Looking for '入札案件の検索条件結果' or any '検索条件' sections...")
-                
+
                 # Look for any elements containing search conditions text
                 search_condition_texts = [
                     '入札案件の検索条件結果',
@@ -839,23 +841,23 @@ class NJSSHomeCrawler(NJSSCrawler):
                     '保存した検索条件',
                     'お気に入り検索条件'
                 ]
-                
+
                 # Check for tables with saved search conditions
                 tables = await page.query_selector_all('table')
                 logger.info(f"Found {len(tables)} tables on page")
-                
+
                 for i, table in enumerate(tables):
                     try:
                         table_text = await table.text_content()
                         logger.info(f"Table {i} preview: {table_text[:200]}...")
-                        
+
                         # Look for download links in table rows
                         rows = await table.query_selector_all('tr')
                         for row in rows:
                             row_text = await row.text_content()
                             if any(text in row_text for text in search_condition_texts):
                                 logger.info(f"Found search condition row: {row_text[:100]}")
-                                
+
                                 # Look for download button/link in this row
                                 download_link = await row.query_selector('a:has-text("ダウンロード"), button:has-text("ダウンロード"), a[href*="download"]')
                                 if download_link:
@@ -863,10 +865,10 @@ class NJSSHomeCrawler(NJSSCrawler):
                                     download_buttons.append(download_link)
                     except:
                         continue
-                
+
                 # Find all elements that might contain search results
                 all_elements = await page.query_selector_all('div, section, article, li, tr')
-                
+
                 for element in all_elements:
                     try:
                         element_text = await element.text_content()
@@ -874,7 +876,7 @@ class NJSSHomeCrawler(NJSSCrawler):
                             for search_text in search_condition_texts:
                                 if search_text in element_text:
                                     logger.info(f"Found section with '{search_text}'")
-                                    
+
                                     # Look for download button within or near this element
                                     # Check within the element
                                     download_btn = await element.query_selector('button:has-text("ダウンロード"), a:has-text("ダウンロード"), button:has-text("CSV"), a:has-text("CSV")')
@@ -882,7 +884,7 @@ class NJSSHomeCrawler(NJSSCrawler):
                                         logger.info(f"Found download button within '{search_text}' section")
                                         download_buttons.append(download_btn)
                                         break
-                                    
+
                                     # Check parent element
                                     parent = await element.evaluate_handle('(el) => el.parentElement')
                                     if parent:
@@ -893,18 +895,18 @@ class NJSSHomeCrawler(NJSSCrawler):
                                             break
                     except:
                         continue
-                
+
                 # If still no download buttons, log all elements with "ダウンロード" text
                 if len(download_buttons) == 0:
                     logger.info("No download buttons found in search sections. Looking for any download links...")
                     all_download_elements = await page.query_selector_all('*:has-text("ダウンロード")')
                     logger.info(f"Found {len(all_download_elements)} elements with 'ダウンロード' text")
-                    
+
                     for i, elem in enumerate(all_download_elements[:5]):
                         tag_name = await elem.evaluate('el => el.tagName')
                         elem_text = await elem.text_content()
                         logger.info(f"Download element {i}: tag={tag_name}, text='{elem_text[:100]}'")
-                        
+
                         # If it's a clickable element, add it
                         if tag_name.lower() in ['button', 'a']:
                             download_buttons.append(elem)
@@ -965,16 +967,16 @@ class NJSSHomeCrawler(NJSSCrawler):
                 with open(html_path, 'w', encoding='utf-8') as f:
                     f.write(page_html)
                 logger.error(f"No files downloaded from NJSS. Page HTML saved for debugging: {html_path}")
-                
+
                 # Take a screenshot for debugging
                 screenshot_path = f"/tmp/njss_no_download_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
                 await page.screenshot(path=screenshot_path, full_page=True)
                 logger.error(f"Screenshot saved: {screenshot_path}")
-                
+
                 # Log all text content on the page
                 page_text = await page.evaluate('() => document.body.innerText')
                 logger.info(f"Page text (first 1000 chars): {page_text[:1000]}")
-                
+
                 raise Exception("Failed to download CSV from NJSS. No download buttons found or download failed.")
 
             return downloaded_files
@@ -1084,7 +1086,7 @@ def main(**context):
                 if dfs:
                     # Concatenate all dataframes
                     merged_df = pd.concat(dfs, ignore_index=True)
-                    
+
                     # Save to final CSV
                     merged_df.to_csv(final_csv_path, index=False, encoding='utf-8')
                     logger.info(f"Merged {len(dfs)} CSV files into {final_csv_path} with {len(merged_df)} total rows")

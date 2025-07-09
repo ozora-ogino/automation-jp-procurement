@@ -558,6 +558,7 @@ class BiddingDataManager:
                     award_info = data.get('award_info', {})
                     processing_info = data.get('processing_info', {})
                     eligibility = data.get('eligibility', {})
+                    documents = data.get('documents', {})
 
                     cursor.execute("""
                         INSERT INTO bidding_cases (
@@ -573,11 +574,13 @@ class BiddingDataManager:
                             winning_company, winning_company_address, winning_reason,
                             winning_score, award_remarks, bid_result_details, unsuccessful_bid,
                             processed_at, qualification_confidence,
-                            is_eligible_to_bid, eligibility_reason, eligibility_details
+                            is_eligible_to_bid, eligibility_reason, eligibility_details,
+                            document_directory, document_count, downloaded_count, documents
                         ) VALUES (
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s
                         )
                         ON CONFLICT (case_id) DO UPDATE SET
                             case_name = EXCLUDED.case_name,
@@ -622,6 +625,10 @@ class BiddingDataManager:
                             is_eligible_to_bid = EXCLUDED.is_eligible_to_bid,
                             eligibility_reason = EXCLUDED.eligibility_reason,
                             eligibility_details = EXCLUDED.eligibility_details,
+                            document_directory = EXCLUDED.document_directory,
+                            document_count = EXCLUDED.document_count,
+                            downloaded_count = EXCLUDED.downloaded_count,
+                            documents = EXCLUDED.documents,
                             updated_at = NOW()
                     """, (
                         data.get('case_id'),
@@ -666,7 +673,11 @@ class BiddingDataManager:
                         processing_info.get('qualification_confidence'),
                         eligibility.get('is_eligible'),
                         eligibility.get('reason'),
-                        json.dumps(eligibility.get('details')) if eligibility.get('details') else None
+                        json.dumps(eligibility.get('details')) if eligibility.get('details') else None,
+                        documents.get('directory'),
+                        documents.get('count', 0),
+                        documents.get('downloaded_count', 0),
+                        json.dumps(documents.get('details', [])) if documents.get('details') else '[]'
                     ))
                     conn.commit()
                     return True
@@ -798,6 +809,13 @@ class BiddingDataManager:
                             'is_eligible': is_eligible,
                             'reason': eligibility_reason,
                             'details': eligibility_details
+                        },
+
+                        'documents': {
+                            'directory': row.get('文書ディレクトリ') if not pd.isna(row.get('文書ディレクトリ')) else None,
+                            'count': int(row.get('文書数', 0)) if not pd.isna(row.get('文書数')) else 0,
+                            'downloaded_count': int(row.get('ダウンロード済み数', 0)) if not pd.isna(row.get('ダウンロード済み数')) else 0,
+                            'details': json.loads(row.get('文書情報', '[]')) if not pd.isna(row.get('文書情報')) else []
                         }
                     }
 
