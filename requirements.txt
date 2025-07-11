@@ -17,6 +17,7 @@ playwright==1.53.0
 aiofiles==24.1.0
 selenium==4.15.2
 undetected-chromedriver==3.5.5
+beautifulsoup4==4.13.4
 
 # For data processing
 pandas==2.1.4
