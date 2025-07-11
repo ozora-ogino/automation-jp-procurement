@@ -78,6 +78,10 @@ class BiddingCase(Base):
     downloaded_count = Column(Integer, default=0)
     documents = Column(JSON)  # Array of document info: [{name, type, url, path}]
     
+    # LLM extracted data
+    llm_extracted_data = Column(JSON)
+    llm_extraction_timestamp = Column(DateTime)
+    
     # Metadata
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

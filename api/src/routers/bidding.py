@@ -74,7 +74,10 @@ def map_to_frontend_response(case) -> BiddingCaseFrontendResponse:
         document_directory=case.document_directory,
         document_count=case.document_count,
         downloaded_count=case.downloaded_count,
-        documents=case.documents
+        documents=case.documents,
+        # LLM extracted data
+        llm_extracted_data=case.llm_extracted_data,
+        llm_extraction_timestamp=case.llm_extraction_timestamp.isoformat() if case.llm_extraction_timestamp else None
     )
 
 

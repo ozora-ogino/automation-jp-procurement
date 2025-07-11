@@ -24,3 +24,7 @@ pandas==2.1.4
 
 # For environment variables
 python-dotenv==1.0.0
+
+# For PDF processing
+langchain==0.1.0
+pypdf==3.17.4

@@ -94,6 +94,10 @@ CREATE TABLE bidding_cases (
     downloaded_count INTEGER DEFAULT 0,
     documents JSONB,
 
+    -- LLM抽出情報
+    llm_extracted_data JSONB,
+    llm_extraction_timestamp TIMESTAMP WITH TIME ZONE,
+
     -- メタデータ
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -152,6 +156,12 @@ CREATE INDEX idx_bidding_cases_qualifications_parsed ON bidding_cases USING GIN(
 CREATE INDEX idx_bidding_cases_search_vector ON bidding_cases USING GIN(search_vector);
 CREATE INDEX idx_bidding_cases_business_types ON bidding_cases USING GIN(business_types_normalized);
 CREATE INDEX idx_bidding_cases_eligibility_details ON bidding_cases USING GIN(eligibility_details);
+CREATE INDEX idx_bidding_cases_llm_extracted_data ON bidding_cases USING GIN(llm_extracted_data);
+
+-- LLM抽出関連のインデックス
+CREATE INDEX idx_bidding_cases_llm_extraction_timestamp ON bidding_cases(llm_extraction_timestamp);
+CREATE INDEX idx_bidding_cases_llm_extraction_status ON bidding_cases(llm_extraction_timestamp, document_count) 
+    WHERE llm_extracted_data IS NULL AND document_directory IS NOT NULL AND document_count > 0;
 
 -- ベクトル検索用インデックス（IVFFlat - 3072次元をサポート）
 -- Note: IVFFlatインデックスは、テーブルに十分なデータがある場合に作成する必要があります

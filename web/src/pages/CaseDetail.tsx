@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { biddingAPI } from '../services/api';
 import DocumentsSection from '../components/DocumentsSection';
+import LLMExtractedDataSection from '../components/LLMExtractedDataSection';
 
 const CaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -437,6 +438,22 @@ const CaseDetail: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* LLM Extracted Data Section */}
+      {caseData.llm_extracted_data && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-lg font-semibold">AI抽出情報</h2>
+            <p className="text-sm text-gray-600 mt-1">文書から自動抽出された詳細情報</p>
+          </div>
+          <div className="px-6 py-4">
+            <LLMExtractedDataSection 
+              data={caseData.llm_extracted_data} 
+              timestamp={caseData.llm_extraction_timestamp}
+            />
+          </div>
+        </div>
+      )}
 
       {similarCases && similarCases.length > 0 && (
         <div className="bg-white shadow rounded-lg overflow-hidden">

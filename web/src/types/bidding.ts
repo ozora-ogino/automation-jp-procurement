@@ -61,6 +61,221 @@ export interface BiddingCase {
     index: number;
     anken_id: string;
   }>;
+  
+  // LLM extracted data
+  llm_extracted_data?: LLMExtractedData;
+  llm_extraction_timestamp?: string;
+}
+
+export interface LLMExtractedData {
+  important_dates?: {
+    announcement_date?: string;
+    briefing_session?: {
+      date?: string;
+      is_mandatory?: boolean;
+      location?: string;
+    };
+    question_deadline?: string;
+    submission_deadline?: string;
+    opening_date?: string;
+    contract_date?: string;
+    performance_period?: {
+      start?: string;
+      end?: string;
+      description?: string;
+    };
+  };
+  
+  qualification_requirements?: {
+    unified_qualification?: {
+      required?: boolean;
+      category?: string;
+      rank?: string;
+      valid_regions?: string[];
+    };
+    specific_qualifications?: Array<{
+      name?: string;
+      details?: string;
+      is_mandatory?: boolean;
+    }>;
+    experience_requirements?: Array<{
+      type?: string;
+      details?: string;
+      period?: string;
+      scale?: string;
+    }>;
+    financial_requirements?: {
+      capital?: string;
+      annual_revenue?: string;
+      financial_soundness?: string;
+    };
+    personnel_requirements?: Array<{
+      role?: string;
+      qualification?: string;
+      experience?: string;
+      number?: string;
+    }>;
+    other_requirements?: string[];
+  };
+  
+  business_content?: {
+    overview?: string;
+    detailed_content?: string;
+    scope_of_work?: string[];
+    deliverables?: Array<{
+      item?: string;
+      deadline?: string;
+      format?: string;
+      quantity?: string;
+    }>;
+    technical_requirements?: Array<{
+      category?: string;
+      requirement?: string;
+      priority?: string;
+    }>;
+    performance_location?: string;
+    work_conditions?: string;
+  };
+  
+  financial_info?: {
+    budget_amount?: string;
+    budget_disclosure?: string;
+    minimum_price?: {
+      exists?: boolean;
+      calculation_method?: string;
+    };
+    payment_terms?: {
+      method?: string;
+      timing?: string;
+      conditions?: string;
+    };
+    advance_payment?: {
+      available?: boolean;
+      percentage?: string;
+      conditions?: string;
+    };
+    bid_bond?: {
+      required?: boolean;
+      amount?: string;
+      exemption_conditions?: string;
+    };
+    performance_bond?: {
+      required?: boolean;
+      amount?: string;
+      exemption_conditions?: string;
+    };
+  };
+  
+  submission_requirements?: {
+    bid_documents?: Array<{
+      document_name?: string;
+      format?: string;
+      copies?: string;
+      notes?: string;
+    }>;
+    technical_proposal?: {
+      required?: boolean;
+      page_limit?: string;
+      evaluation_items?: string[];
+    };
+    submission_method?: {
+      options?: string[];
+      electronic_system?: string;
+      notes?: string;
+    };
+    submission_location?: {
+      address?: string;
+      department?: string;
+      reception_hours?: string;
+    };
+  };
+  
+  evaluation_criteria?: {
+    evaluation_method?: string;
+    price_weight?: string;
+    technical_weight?: string;
+    evaluation_items?: Array<{
+      category?: string;
+      item?: string;
+      points?: string;
+      criteria?: string;
+    }>;
+    minimum_technical_score?: string;
+  };
+  
+  contact_info?: {
+    contract_department?: {
+      name?: string;
+      person?: string;
+      phone?: string;
+      fax?: string;
+      email?: string;
+      hours?: string;
+    };
+    technical_department?: {
+      name?: string;
+      person?: string;
+      phone?: string;
+      email?: string;
+    };
+  };
+  
+  special_conditions?: {
+    joint_venture?: {
+      allowed?: boolean;
+      conditions?: string;
+    };
+    subcontracting?: {
+      allowed?: boolean;
+      restrictions?: string;
+    };
+    confidentiality?: string;
+    intellectual_property?: string;
+    penalty_clauses?: string;
+  };
+  
+  risk_analysis?: {
+    key_points?: Array<{
+      point?: string;
+      importance?: string;
+      reason?: string;
+    }>;
+    red_flags?: Array<{
+      issue?: string;
+      severity?: string;
+      description?: string;
+      mitigation?: string;
+    }>;
+    unclear_points?: Array<{
+      item?: string;
+      impact?: string;
+      action_required?: string;
+    }>;
+  };
+  
+  bid_feasibility?: {
+    strengths?: string[];
+    weaknesses?: string[];
+    preparation_time?: string;
+    resource_requirements?: string;
+    competition_level?: string;
+    recommendation?: {
+      participate?: string;
+      reasoning?: string;
+      conditions?: string[];
+    };
+  };
+  
+  _metadata?: {
+    extraction_timestamp?: string;
+    model_used?: string;
+    case_id?: string;
+    token_usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  };
 }
 
 export interface BiddingStats {

@@ -64,6 +64,10 @@ class BiddingCaseBase(BaseModel):
     is_eligible_to_bid: Optional[bool] = Field(None, description="Whether eligible to bid")
     eligibility_details: Optional[Any] = Field(None, description="Detailed eligibility information")
     eligibility_reason: Optional[str] = Field(None, description="Reason for eligibility determination")
+    
+    # LLM extracted data
+    llm_extracted_data: Optional[Any] = Field(None, description="LLM extracted information")
+    llm_extraction_timestamp: Optional[datetime] = Field(None, description="LLM extraction timestamp")
 
 
 class BiddingCaseCreate(BiddingCaseBase):
@@ -203,6 +207,10 @@ class BiddingCaseFrontendResponse(BaseModel):
     document_count: Optional[int] = None
     downloaded_count: Optional[int] = None
     documents: Optional[List[Any]] = None
+    
+    # LLM extracted data
+    llm_extracted_data: Optional[Any] = None
+    llm_extraction_timestamp: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 
