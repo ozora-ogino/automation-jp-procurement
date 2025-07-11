@@ -313,12 +313,12 @@ class CaseEmbeddingRepository:
         existing = self.db.query(CaseEmbedding).filter(CaseEmbedding.case_id == case_id).first()
 
         if existing:
-            existing.embedding = embedding
+            existing.combined_embedding = embedding
             existing.embedding_model = model
         else:
             existing = CaseEmbedding(
                 case_id=case_id,
-                embedding=embedding,
+                combined_embedding=embedding,
                 embedding_model=model
             )
             self.db.add(existing)
