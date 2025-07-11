@@ -16,13 +16,11 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({ onFilterApply, currentFilte
   const presetFilters: PresetFilter[] = [
     {
       label: '入札可能のみ',
-      filters: { eligibility_filter: 'eligible' },
-      icon: '✅'
+      filters: { eligibility_filter: 'eligible' }
     },
     {
       label: '入札不可能のみ',
-      filters: { eligibility_filter: 'ineligible' },
-      icon: '❌'
+      filters: { eligibility_filter: 'ineligible' }
     }
   ];
 
@@ -77,7 +75,6 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({ onFilterApply, currentFilte
               `}
               title={`${preset.label}${isActive ? ' (クリックして解除)' : ''}`}
             >
-              {preset.icon && <span className="text-base">{preset.icon}</span>}
               <span>{preset.label}</span>
             </button>
           );

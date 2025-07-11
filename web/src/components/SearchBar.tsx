@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -10,6 +10,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = "案件名、機関名、地域などで検索..." 
 }) => {
   const [query, setQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isTyping) {
+        onSearch(query);
+        setIsTyping(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query, isTyping, onSearch]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    setIsTyping(true);
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    onSearch('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,9 +44,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleChange}
           placeholder={placeholder}
-          className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full px-4 py-2.5 pl-10 pr-10 text-gray-700 bg-white border border-gray-300 rounded-lg 
+                     focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                     transition-colors duration-200"
         />
         <div className="absolute inset-y-0 left-0 flex items-center pl-3">
           <svg
@@ -41,14 +65,27 @@ const SearchBar: React.FC<SearchBarProps> = ({
             />
           </svg>
         </div>
-        <button
-          type="submit"
-          className="absolute inset-y-0 right-0 flex items-center pr-3"
-        >
-          <span className="px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
-            検索
-          </span>
-        </button>
+        {query && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
       </div>
     </form>
   );
