@@ -33,7 +33,7 @@ except ImportError:
 
 class FileProcessor:
     """各種ファイルフォーマットを処理してテキストを抽出するクラス"""
-    
+
     def __init__(self):
         self.supported_extensions = {
             '.pdf': self.process_pdf,
@@ -42,30 +42,30 @@ class FileProcessor:
             '.txt': self.process_text,
             '.md': self.process_text,
         }
-    
+
     def process_pdf(self, file_path: Path) -> str:
         """PDFファイルからテキストを抽出"""
         if not LANGCHAIN_AVAILABLE:
             logger.warning(f"Cannot process PDF {file_path.name}: langchain not available")
             return ""
-        
+
         try:
             loader = PyPDFLoader(str(file_path))
             pages = loader.load()
-            
+
             # 全ページのテキストを結合
             text_content = []
             for i, page in enumerate(pages):
                 page_text = page.page_content.strip()
                 if page_text:
                     text_content.append(f"[Page {i+1}]\n{page_text}")
-            
+
             return "\n\n".join(text_content)
-        
+
         except Exception as e:
             logger.error(f"Error processing PDF {file_path}: {e}")
             return ""
-    
+
     def process_html(self, file_path: Path) -> str:
         """HTMLファイルからテキストを抽出（タグを除去）"""
         try:
@@ -76,11 +76,11 @@ class FileProcessor:
                 if header[:8] == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
                     logger.info(f"File {file_path.name} is actually an Excel file, skipping...")
                     return f"[File is Excel format with .html extension, cannot process]"
-            
+
             # HTMLとして読み込み
             encodings = ['utf-8', 'shift_jis', 'euc-jp', 'iso-2022-jp']
             content = None
-            
+
             for encoding in encodings:
                 try:
                     with open(file_path, 'r', encoding=encoding) as f:
@@ -88,57 +88,57 @@ class FileProcessor:
                     break
                 except UnicodeDecodeError:
                     continue
-            
+
             if content is None:
                 logger.error(f"Could not decode HTML file {file_path}")
                 return ""
-            
+
             # BeautifulSoupでHTMLをパース
             soup = BeautifulSoup(content, 'html.parser')
-            
+
             # スクリプトとスタイルタグを削除
             for element in soup(['script', 'style', 'meta', 'link']):
                 element.decompose()
-            
+
             # テキストを抽出
             text = soup.get_text()
-            
+
             # 連続する空白や改行を整理
             lines = []
             for line in text.splitlines():
                 line = line.strip()
                 if line:
                     lines.append(line)
-            
+
             return '\n'.join(lines)
-        
+
         except Exception as e:
             logger.error(f"Error processing HTML {file_path}: {e}")
             return ""
-    
+
     def process_text(self, file_path: Path) -> str:
         """テキストファイルをそのまま読み込む"""
         try:
             encodings = ['utf-8', 'shift_jis', 'euc-jp']
-            
+
             for encoding in encodings:
                 try:
                     with open(file_path, 'r', encoding=encoding) as f:
                         return f.read().strip()
                 except UnicodeDecodeError:
                     continue
-            
+
             logger.error(f"Could not decode text file {file_path}")
             return ""
-        
+
         except Exception as e:
             logger.error(f"Error processing text file {file_path}: {e}")
             return ""
-    
+
     def process_file(self, file_path: Path) -> Tuple[str, str]:
         """ファイルを処理してテキストを抽出"""
         extension = file_path.suffix.lower()
-        
+
         if extension in self.supported_extensions:
             processor = self.supported_extensions[extension]
             content = processor(file_path)
@@ -153,87 +153,87 @@ def concatenate_files(directory_path: str, output_file: str = 'concatenated_outp
                      exclude_patterns: List[str] = None) -> str:
     """
     ディレクトリ内の全ファイルを処理して1つのテキストファイルに結合
-    
+
     Args:
         directory_path: 処理するディレクトリのパス
         output_file: 出力ファイル名
         include_patterns: 含めるファイルパターン
         exclude_patterns: 除外するファイルパターン (デフォルト: ['.git', '__pycache__', '.pyc', '.log'])
-    
+
     Returns:
         str: 出力ファイルのパス
     """
-    
+
     # デフォルトの除外パターン
     if exclude_patterns is None:
         exclude_patterns = ['.git', '__pycache__', '.pyc', '.log']
-    
+
     directory_path = Path(directory_path)
     if not directory_path.exists():
         raise ValueError(f"ディレクトリが見つかりません: {directory_path}")
-    
+
     if not directory_path.is_dir():
         raise ValueError(f"パスがディレクトリではありません: {directory_path}")
-    
+
     processor = FileProcessor()
     processed_files = []
-    
+
     # ディレクトリ内の全ファイルを走査
     all_files = sorted(directory_path.rglob("*"))
-    
+
     for file_path in all_files:
         if not file_path.is_file():
             continue
-        
+
         # 除外パターンのチェック
         if exclude_patterns:
             if any(pattern in str(file_path) for pattern in exclude_patterns):
                 logger.info(f"Skipping excluded file: {file_path.name}")
                 continue
-        
+
         # 含めるパターンのチェック
         if include_patterns:
             if not any(pattern in str(file_path) for pattern in include_patterns):
                 continue
-        
+
         logger.info(f"Processing: {file_path.name}")
         file_name, content = processor.process_file(file_path)
-        
+
         if content:
             processed_files.append({
                 'path': str(file_path.relative_to(directory_path)),
                 'name': file_name,
                 'content': content
             })
-    
+
     # 結果を1つのファイルに出力
     output_path = Path(output_file)
     logger.info(f"Writing {len(processed_files)} files to {output_path}")
-    
+
     with open(output_path, 'w', encoding='utf-8') as f:
         for i, file_data in enumerate(processed_files):
             if i > 0:
                 f.write("\n\n###\n\n")
-            
+
             # ファイル情報のヘッダー
             f.write(f"File: {file_data['path']}\n")
             f.write(f"Name: {file_data['name']}\n")
             f.write("="*80 + "\n\n")
-            
+
             # コンテンツ
             f.write(file_data['content'])
-    
+
     # サマリーを表示
     logger.info(f"処理完了:")
     logger.info(f"  - 処理したファイル数: {len(processed_files)}")
     logger.info(f"  - 出力ファイル: {output_path}")
     logger.info(f"  - ファイルサイズ: {output_path.stat().st_size:,} bytes")
-    
+
     # 処理したファイルのリスト
     logger.info(f"処理したファイル:")
     for file_data in processed_files:
         logger.info(f"  - {file_data['path']}")
-    
+
     return str(output_path)
 
 
@@ -272,7 +272,7 @@ $query
       "description": "履行期間の詳細説明"
     }
   },
-  
+
   "qualification_requirements": {
     "unified_qualification": {
       "required": "全省庁統一資格の要否（true/false）",
@@ -310,7 +310,7 @@ $query
     ],
     "other_requirements": ["その他の参加資格要件"]
   },
-  
+
   "business_content": {
     "overview": "業務概要（100文字程度）",
     "detailed_content": "詳細な業務内容",
@@ -333,7 +333,7 @@ $query
     "performance_location": "履行場所",
     "work_conditions": "作業条件・制約事項"
   },
-  
+
   "financial_info": {
     "budget_amount": "予定価格（数値のみ、円単位）",
     "budget_disclosure": "予定価格の公表有無（事前公表/事後公表/非公表）",
@@ -362,7 +362,7 @@ $query
       "exemption_conditions": "免除条件"
     }
   },
-  
+
   "submission_requirements": {
     "bid_documents": [
       {
@@ -388,7 +388,7 @@ $query
       "reception_hours": "受付時間"
     }
   },
-  
+
   "evaluation_criteria": {
     "evaluation_method": "落札者決定方式",
     "price_weight": "価格点の配分（%）",
@@ -403,7 +403,7 @@ $query
     ],
     "minimum_technical_score": "技術点の最低基準点"
   },
-  
+
   "contact_info": {
     "contract_department": {
       "name": "契約担当部署",
@@ -420,7 +420,7 @@ $query
       "email": "メールアドレス"
     }
   },
-  
+
   "special_conditions": {
     "joint_venture": {
       "allowed": "JV参加の可否（true/false）",
@@ -434,7 +434,7 @@ $query
     "intellectual_property": "知的財産権の取扱い",
     "penalty_clauses": "違約金・損害賠償条項"
   },
-  
+
   "risk_analysis": {
     "key_points": [
       {
@@ -459,7 +459,7 @@ $query
       }
     ]
   },
-  
+
   "bid_feasibility": {
     "strengths": ["自社の強み・有利な点"],
     "weaknesses": ["自社の弱み・不利な点"],
@@ -507,7 +507,7 @@ NULL値の扱い
 
 class BidDocumentExtractor:
     """LLMを使用して入札文書から情報を抽出するクラス"""
-    
+
     def __init__(self, openai_api_key: str = None):
         """
         Args:
@@ -518,26 +518,26 @@ class BidDocumentExtractor:
         else:
             # 環境変数から取得
             self.client = OpenAI()
-        
-        self.model = "gpt-4-turbo-preview"
-        
+
+        self.model = "gpt-4o-2024-11-20"
+
     def extract_bid_information(self, document_text: str, case_id: str = None) -> Dict[str, Any]:
         """
         入札文書から情報を抽出
-        
+
         Args:
             document_text: 分析対象の文書テキスト
             case_id: 案件ID（ログ用）
-            
+
         Returns:
             Dict[str, Any]: 抽出された入札情報
         """
         try:
             # プロンプトの生成
             prompt = EXTRACT_BID_INFO_PROMPT_TEMPLATE.substitute(query=document_text)
-            
+
             logger.info(f"LLMによる情報抽出開始: 案件ID={case_id}")
-            
+
             # OpenAI APIコール
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -549,10 +549,10 @@ class BidDocumentExtractor:
                 temperature=0.1,  # より決定的な出力のため低めに設定
                 max_tokens=4000
             )
-            
+
             # レスポンスの解析
             extracted_data = json.loads(response.choices[0].message.content)
-            
+
             # メタデータの追加
             extracted_data['_metadata'] = {
                 'extraction_timestamp': datetime.now().isoformat(),
@@ -564,11 +564,11 @@ class BidDocumentExtractor:
                     'total_tokens': response.usage.total_tokens
                 }
             }
-            
+
             logger.info(f"情報抽出完了: 案件ID={case_id}, トークン使用量={response.usage.total_tokens}")
-            
+
             return extracted_data
-            
+
         except Exception as e:
             logger.error(f"情報抽出エラー: 案件ID={case_id}, エラー={e}")
             return {
@@ -576,24 +576,24 @@ class BidDocumentExtractor:
                 'case_id': case_id,
                 'extraction_timestamp': datetime.now().isoformat()
             }
-    
+
     def extract_from_concatenated_file(self, file_path: str, case_id: str = None) -> Dict[str, Any]:
         """
         結合されたファイルから情報を抽出
-        
+
         Args:
             file_path: 結合されたテキストファイルのパス
             case_id: 案件ID
-            
+
         Returns:
             Dict[str, Any]: 抽出された入札情報
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 document_text = f.read()
-            
+
             return self.extract_bid_information(document_text, case_id)
-            
+
         except Exception as e:
             logger.error(f"ファイル読み込みエラー: {file_path}, エラー={e}")
             raise
@@ -1468,12 +1468,12 @@ class BiddingDataManager:
             'business_type_codes': business_codes,
             'prefecture': self.data_normalizer.extract_prefecture(row.get('機関所在地'))
         }
-    
+
     def initialize_document_extractor(self, openai_api_key: str = None):
         """LLM文書抽出器を初期化"""
         if self.document_extractor is None:
             self.document_extractor = BidDocumentExtractor(openai_api_key)
-    
+
     def update_case_with_llm_extraction(self, case_id: int, extracted_data: Dict[str, Any]) -> bool:
         """LLM抽出結果でケースを更新"""
         try:
@@ -1482,24 +1482,24 @@ class BiddingDataManager:
                     # LLM抽出データ専用のカラムを追加（ALTER TABLEが必要な場合）
                     # まず既存のカラムを確認
                     cursor.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
+                        SELECT column_name
+                        FROM information_schema.columns
                         WHERE table_name='bidding_cases' AND column_name='llm_extracted_data'
                     """)
-                    
+
                     if not cursor.fetchone():
                         # カラムが存在しない場合は追加
                         cursor.execute("""
-                            ALTER TABLE bidding_cases 
+                            ALTER TABLE bidding_cases
                             ADD COLUMN IF NOT EXISTS llm_extracted_data JSONB,
                             ADD COLUMN IF NOT EXISTS llm_extraction_timestamp TIMESTAMP WITH TIME ZONE
                         """)
                         conn.commit()
-                    
+
                     # 抽出データを更新
                     cursor.execute("""
-                        UPDATE bidding_cases 
-                        SET 
+                        UPDATE bidding_cases
+                        SET
                             llm_extracted_data = %s,
                             llm_extraction_timestamp = %s,
                             updated_at = NOW()
@@ -1509,7 +1509,7 @@ class BiddingDataManager:
                         datetime.now(),
                         case_id
                     ))
-                    
+
                     # 抽出データから重要な情報を既存カラムにも反映
                     if 'error' not in extracted_data:
                         # 日付情報の更新
@@ -1517,23 +1517,23 @@ class BiddingDataManager:
                         if dates:
                             updates = []
                             params = []
-                            
+
                             if dates.get('announcement_date') and dates['announcement_date'] != 'null':
                                 updates.append("announcement_date = %s")
                                 params.append(dates['announcement_date'])
-                            
+
                             if dates.get('submission_deadline') and dates['submission_deadline'] != 'null':
                                 updates.append("bidding_date = %s")
                                 params.append(dates['submission_deadline'].split(' ')[0])  # 日付部分のみ
-                            
+
                             if updates:
                                 params.append(case_id)
                                 cursor.execute(f"""
-                                    UPDATE bidding_cases 
+                                    UPDATE bidding_cases
                                     SET {', '.join(updates)}
                                     WHERE case_id = %s
                                 """, params)
-                        
+
                         # 資格要件の更新
                         qual_req = extracted_data.get('qualification_requirements', {})
                         if qual_req:
@@ -1541,33 +1541,33 @@ class BiddingDataManager:
                             if unified.get('rank'):
                                 # 既存の資格要件解析結果と統合
                                 cursor.execute("""
-                                    UPDATE bidding_cases 
-                                    SET qualifications_summary = 
+                                    UPDATE bidding_cases
+                                    SET qualifications_summary =
                                         COALESCE(qualifications_summary, '{}'::jsonb) || %s::jsonb
                                     WHERE case_id = %s
                                 """, (
                                     json.dumps({'llm_extracted_rank': unified['rank']}),
                                     case_id
                                 ))
-                    
+
                     conn.commit()
                     logger.info(f"LLM抽出データ更新完了: case_id={case_id}")
                     return True
-                    
+
         except Exception as e:
             logger.error(f"LLM抽出データ更新エラー: case_id={case_id}, error={e}")
             return False
-    
-    def process_case_documents(self, case_id: int, document_directory: str, 
+
+    def process_case_documents(self, case_id: int, document_directory: str,
                               openai_api_key: str = None) -> Dict[str, Any]:
         """
         案件の文書を処理してLLM抽出を実行
-        
+
         Args:
             case_id: 案件ID
             document_directory: 文書ディレクトリパス
             openai_api_key: OpenAI APIキー
-            
+
         Returns:
             Dict[str, Any]: 処理結果
         """
@@ -1578,11 +1578,11 @@ class BiddingDataManager:
             'saved': False,
             'error': None
         }
-        
+
         try:
             # LLM抽出器の初期化
             self.initialize_document_extractor(openai_api_key)
-            
+
             # 文書の結合
             logger.info(f"文書結合開始: case_id={case_id}, directory={document_directory}")
             concat_file = concatenate_files(
@@ -1591,39 +1591,39 @@ class BiddingDataManager:
                 exclude_patterns=['.git', '__pycache__', '.pyc', '.log', '.jpg', '.jpeg', '.png']
             )
             stats['concatenated'] = True
-            
+
             # LLM抽出
             logger.info(f"LLM情報抽出開始: case_id={case_id}")
             extracted_data = self.document_extractor.extract_from_concatenated_file(
-                concat_file, 
+                concat_file,
                 str(case_id)
             )
             stats['extracted'] = True
-            
+
             # データベース更新
             if self.update_case_with_llm_extraction(case_id, extracted_data):
                 stats['saved'] = True
                 logger.info(f"処理完了: case_id={case_id}")
             else:
                 stats['error'] = "データベース更新失敗"
-            
+
             # 一時ファイルの削除（オプション）
             try:
                 os.remove(concat_file)
             except:
                 pass
-                
+
         except Exception as e:
             stats['error'] = str(e)
             logger.error(f"文書処理エラー: case_id={case_id}, error={e}")
-        
+
         return stats
 
 
 def process_llm_extraction():
     """LLM文書抽出処理のメイン関数（Airflow用）"""
     logger.info("LLM文書抽出処理開始")
-    
+
     stats = {
         'total_cases': 0,
         'processed_cases': 0,
@@ -1631,26 +1631,26 @@ def process_llm_extraction():
         'failed_cases': 0,
         'errors': []
     }
-    
+
     try:
         # データベース接続
         db_connection = PostgreSQLConnection()
-        
+
         # 接続テスト
         if not db_connection.test_connection():
             logger.error("データベース接続失敗")
             raise Exception("Database connection failed")
-        
+
         # データ管理クラス初期化
         manager = BiddingDataManager(db_connection)
-        
+
         # 未処理案件の取得
         with db_connection.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT case_id, document_directory 
+                    SELECT case_id, document_directory
                     FROM bidding_cases
-                    WHERE 
+                    WHERE
                         llm_extracted_data IS NULL
                         AND document_directory IS NOT NULL
                         AND document_count > 0
@@ -1658,10 +1658,10 @@ def process_llm_extraction():
                     LIMIT 50  -- バッチサイズ
                 """)
                 cases = cursor.fetchall()
-        
+
         stats['total_cases'] = len(cases)
         logger.info(f"処理対象案件数: {stats['total_cases']}")
-        
+
         # 各案件の処理
         for case_id, doc_dir in cases:
             try:
@@ -1670,7 +1670,7 @@ def process_llm_extraction():
                     case_id=case_id,
                     document_directory=doc_dir
                 )
-                
+
                 stats['processed_cases'] += 1
                 if result.get('saved'):
                     stats['success_cases'] += 1
@@ -1681,7 +1681,7 @@ def process_llm_extraction():
                         'case_id': case_id,
                         'error': result.get('error', 'Unknown error')
                     })
-                    
+
             except Exception as e:
                 stats['failed_cases'] += 1
                 stats['errors'].append({
@@ -1689,7 +1689,7 @@ def process_llm_extraction():
                     'error': str(e)
                 })
                 logger.error(f"案件処理エラー: case_id={case_id}, error={e}")
-        
+
         # ジョブ実行ログの記録
         manager.log_job_execution(
             'llm_document_extraction',
@@ -1698,7 +1698,7 @@ def process_llm_extraction():
             new_records_added=stats['success_cases'],
             metadata=stats
         )
-        
+
         logger.info("=" * 60)
         logger.info("LLM抽出処理結果:")
         logger.info(f"  対象案件数: {stats['total_cases']}")
@@ -1706,9 +1706,9 @@ def process_llm_extraction():
         logger.info(f"  成功: {stats['success_cases']}")
         logger.info(f"  失敗: {stats['failed_cases']}")
         logger.info("=" * 60)
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"LLM抽出処理エラー: {e}")
         raise
