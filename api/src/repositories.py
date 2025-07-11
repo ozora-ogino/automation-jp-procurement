@@ -191,6 +191,118 @@ class BiddingCaseRepository:
             }
             for row in results
         ]
+    
+    def count_upcoming_deadlines(self, days: int = 7) -> int:
+        """Count cases with deadlines in the next N days"""
+        future_date = datetime.now() + timedelta(days=days)
+        return self.db.query(func.count(BiddingCase.id)).filter(
+            BiddingCase.document_submission_date.between(datetime.now(), future_date)
+        ).scalar() or 0
+    
+    def count_high_value_cases(self, threshold: float = 100000000) -> int:
+        """Count cases with planned price above threshold (default: 100M JPY)"""
+        return self.db.query(func.count(BiddingCase.id)).filter(
+            BiddingCase.planned_price_normalized >= threshold
+        ).scalar() or 0
+    
+    def get_recent_winners(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get top N recent winning companies with their win counts and total values"""
+        query = text("""
+            SELECT 
+                winning_company,
+                COUNT(*) as win_count,
+                COALESCE(SUM(award_price_normalized), 0) as total_value,
+                MAX(award_date) as latest_win_date
+            FROM bidding_cases
+            WHERE winning_company IS NOT NULL
+                AND award_date >= CURRENT_DATE - INTERVAL '90 days'
+            GROUP BY winning_company
+            ORDER BY win_count DESC, total_value DESC
+            LIMIT :limit
+        """)
+        
+        results = self.db.execute(query, {"limit": limit}).fetchall()
+        
+        return [
+            {
+                "company": row.winning_company,
+                "win_count": row.win_count,
+                "total_value": float(row.total_value) if row.total_value else 0.0,
+                "latest_win_date": row.latest_win_date.strftime("%Y-%m-%d") if row.latest_win_date else None
+            }
+            for row in results
+        ]
+    
+    def get_qualification_type_distribution(self) -> Dict[str, int]:
+        """Get distribution of qualification types from parsed qualifications"""
+        query = text("""
+            SELECT 
+                CASE 
+                    WHEN qualifications_raw LIKE '%物品の製造%' THEN '物品の製造'
+                    WHEN qualifications_raw LIKE '%物品の販売%' THEN '物品の販売'
+                    WHEN qualifications_raw LIKE '%役務の提供%' THEN '役務の提供'
+                    WHEN qualifications_raw LIKE '%物品の買受け%' THEN '物品の買受け'
+                    ELSE 'その他'
+                END as qualification_type,
+                COUNT(*) as count
+            FROM bidding_cases
+            WHERE qualifications_raw IS NOT NULL
+            GROUP BY qualification_type
+            ORDER BY count DESC
+        """)
+        
+        results = self.db.execute(query).fetchall()
+        
+        return {row.qualification_type: row.count for row in results}
+    
+    def get_average_competition_rate(self) -> float:
+        """Get average number of bidders per case (from bid_result_details)"""
+        query = text("""
+            SELECT 
+                AVG(
+                    CASE 
+                        WHEN bid_result_details IS NOT NULL 
+                            AND jsonb_typeof(bid_result_details) = 'array'
+                        THEN jsonb_array_length(bid_result_details)
+                        ELSE 0
+                    END
+                ) as avg_bidders
+            FROM bidding_cases
+            WHERE bid_result_details IS NOT NULL
+        """)
+        
+        result = self.db.execute(query).scalar()
+        return float(result) if result else 0.0
+    
+    def get_monthly_growth_rate(self) -> float:
+        """Calculate month-over-month growth rate of new cases"""
+        query = text("""
+            WITH monthly_counts AS (
+                SELECT 
+                    DATE_TRUNC('month', announcement_date) as month,
+                    COUNT(*) as count
+                FROM bidding_cases
+                WHERE announcement_date >= CURRENT_DATE - INTERVAL '60 days'
+                GROUP BY month
+                ORDER BY month DESC
+                LIMIT 2
+            )
+            SELECT 
+                CASE 
+                    WHEN COUNT(*) = 2 THEN
+                        ((MAX(CASE WHEN rn = 1 THEN count END)::float - 
+                          MAX(CASE WHEN rn = 2 THEN count END)::float) / 
+                         MAX(CASE WHEN rn = 2 THEN count END)::float) * 100
+                    ELSE 0
+                END as growth_rate
+            FROM (
+                SELECT count, ROW_NUMBER() OVER (ORDER BY month DESC) as rn
+                FROM monthly_counts
+            ) t
+        """)
+        
+        result = self.db.execute(query).scalar()
+        return float(result) if result else 0.0
 
 
 class CaseEmbeddingRepository:

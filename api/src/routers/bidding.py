@@ -204,6 +204,14 @@ async def get_bidding_stats(
     business_type_distribution = repo.get_business_type_distribution()
     recent_trends = repo.get_recent_trends(days=30)
     
+    # 新しい統計情報の取得
+    upcoming_deadlines_count = repo.count_upcoming_deadlines(days=7)
+    high_value_cases_count = repo.count_high_value_cases(threshold=100000000)  # 1億円以上
+    recent_winners = repo.get_recent_winners(limit=5)
+    qualification_type_distribution = repo.get_qualification_type_distribution()
+    average_competition_rate = repo.get_average_competition_rate()
+    monthly_growth_rate = repo.get_monthly_growth_rate()
+    
     return BiddingStatsResponse(
         total_cases=total_cases,
         total_value=total_value,
@@ -214,5 +222,12 @@ async def get_bidding_stats(
         eligibility_percentage=eligibility_percentage,
         cases_by_prefecture=prefecture_distribution,
         cases_by_industry=business_type_distribution,
-        recent_trends=recent_trends
+        recent_trends=recent_trends,
+        # 新しい統計情報
+        upcoming_deadlines_count=upcoming_deadlines_count,
+        high_value_cases_count=high_value_cases_count,
+        recent_winners=recent_winners,
+        qualification_type_distribution=qualification_type_distribution,
+        average_competition_rate=average_competition_rate,
+        monthly_growth_rate=monthly_growth_rate
     )

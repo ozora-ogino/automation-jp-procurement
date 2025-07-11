@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { BiddingCase, BiddingStats, SearchParams } from '../types/bidding';
+import { BiddingCase, SearchParams } from '../types/bidding';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
 
@@ -26,10 +26,6 @@ export const biddingAPI = {
     return response.data;
   },
 
-  getStats: async () => {
-    const response = await api.get<BiddingStats>('/bidding/stats');
-    return response.data;
-  },
 
   searchCases: async (query: string) => {
     const response = await api.get<BiddingCase[]>('/bidding/search', {

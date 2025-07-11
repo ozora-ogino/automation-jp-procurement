@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { biddingAPI } from '../services/api';
 import BiddingCasesList from '../components/BiddingCasesList';
-import StatsCards from '../components/StatsCards';
-import Charts from '../components/Charts';
 import SearchBar from '../components/SearchBar';
 import Filters from '../components/Filters';
 import QuickFilters from '../components/QuickFilters';
@@ -15,10 +13,6 @@ const Dashboard: React.FC = () => {
     limit: 20,
   });
 
-  const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['stats'],
-    queryFn: biddingAPI.getStats,
-  });
 
   const { data: casesData, isLoading: casesLoading } = useQuery({
     queryKey: ['cases', searchParams],
@@ -51,7 +45,6 @@ const Dashboard: React.FC = () => {
         <SearchBar onSearch={handleSearch} />
       </div>
 
-      <StatsCards stats={statsData} loading={statsLoading} />
 
       <QuickFilters 
         onFilterApply={handleQuickFilterApply} 
@@ -110,14 +103,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {statsData && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            統計情報
-          </h2>
-          <Charts stats={statsData} />
-        </div>
-      )}
     </div>
   );
 };

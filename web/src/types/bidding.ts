@@ -278,23 +278,6 @@ export interface LLMExtractedData {
   };
 }
 
-export interface BiddingStats {
-  total_cases: number;
-  total_value: number;
-  // active_cases field removed - no longer needed
-  // completed_cases field removed - no longer needed
-  average_winning_price: number;
-  eligible_cases: number;
-  ineligible_cases: number;
-  eligibility_percentage: number;
-  cases_by_prefecture: Record<string, number>;
-  cases_by_industry: Record<string, number>;
-  recent_trends: {
-    date: string;
-    count: number;
-    value: number;
-  }[];
-}
 
 export interface SearchParams {
   query?: string;

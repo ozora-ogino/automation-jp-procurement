@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { BiddingCase } from '../types/bidding';
-import { DocumentIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { DocumentIcon } from '@heroicons/react/24/outline';
 
 interface BiddingCasesListProps {
   cases: BiddingCase[];
@@ -117,12 +117,6 @@ const BiddingCasesList: React.FC<BiddingCasesListProps> = ({ cases, loading }) =
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   <DocumentIcon className="h-3 w-3 mr-1" />
                   {biddingCase.downloaded_count || 0}/{biddingCase.document_count} 文書
-                </span>
-              )}
-              {biddingCase.llm_extracted_data && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800" title="AI分析済み">
-                  <SparklesIcon className="h-3 w-3 mr-1" />
-                  AI分析済
                 </span>
               )}
             </div>

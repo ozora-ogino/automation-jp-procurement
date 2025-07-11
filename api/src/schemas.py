@@ -259,3 +259,10 @@ class BiddingStatsResponse(BaseModel):
     cases_by_prefecture: Dict[str, int]
     cases_by_industry: Dict[str, int]
     recent_trends: List[Dict[str, Any]]
+    # 新しい実用的な統計情報
+    upcoming_deadlines_count: int  # 締切が近い案件数（7日以内）
+    high_value_cases_count: int  # 高額案件数（1億円以上）
+    recent_winners: List[Dict[str, Any]]  # 最近の落札企業トップ5
+    qualification_type_distribution: Dict[str, int]  # 資格要件別の分布
+    average_competition_rate: float  # 平均競争率（応札企業数）
+    monthly_growth_rate: float  # 月次成長率
