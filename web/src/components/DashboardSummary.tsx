@@ -3,9 +3,7 @@ import { BiddingCase } from '../types/bidding';
 import { 
   ChartBarIcon, 
   CheckCircleIcon, 
-  XCircleIcon, 
-  ClockIcon,
-  CurrencyYenIcon 
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardSummaryProps {
@@ -52,35 +50,13 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({ cases, loading }) =
       color: 'bg-red-500',
       bgColor: 'bg-red-50',
       textColor: 'text-red-700'
-    },
-    {
-      title: '判定待ち',
-      value: stats.pending,
-      icon: ClockIcon,
-      color: 'bg-yellow-500',
-      bgColor: 'bg-yellow-50',
-      textColor: 'text-yellow-700'
-    },
-    {
-      title: '平均予定価格',
-      value: new Intl.NumberFormat('ja-JP', {
-        style: 'currency',
-        currency: 'JPY',
-        notation: 'compact',
-        maximumFractionDigits: 0,
-      }).format(stats.avgValue),
-      icon: CurrencyYenIcon,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-700',
-      isString: true
     }
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow p-4 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
             <div className="h-8 bg-gray-200 rounded w-3/4"></div>
@@ -91,7 +67,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({ cases, loading }) =
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       {summaryCards.map((card, index) => (
         <div key={index} className={`${card.bgColor} rounded-lg p-4 border border-gray-100`}>
           <div className="flex items-center justify-between mb-2">
@@ -99,7 +75,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({ cases, loading }) =
             <card.icon className={`h-5 w-5 ${card.textColor}`} />
           </div>
           <p className={`text-2xl font-bold ${card.textColor}`}>
-            {card.isString ? card.value : card.value.toLocaleString()}
+            {card.value.toLocaleString()}
           </p>
         </div>
       ))}
