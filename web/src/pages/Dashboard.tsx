@@ -12,9 +12,13 @@ import { SearchParams } from '../types/bidding';
 import { Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 const Dashboard: React.FC = () => {
+  // Set default to today's date
+  const today = new Date().toISOString().split('T')[0];
+  
   const [searchParams, setSearchParams] = useState<SearchParams>({
     page: 1,
     limit: 20,
+    processed_date: today,
   });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('created');

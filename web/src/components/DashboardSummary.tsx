@@ -72,6 +72,14 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({ cases, loading, pro
 
   const formatDate = (dateString: string) => {
     const date = parseISO(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check if the date is today
+    if (date.toDateString() === today.toDateString()) {
+      return '今日';
+    }
+    
     return format(date, 'yyyy年M月d日', { locale: ja });
   };
 
