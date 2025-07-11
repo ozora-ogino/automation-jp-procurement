@@ -863,65 +863,6 @@ class QualificationParser:
         }
 
 
-class BiddingEligibilityChecker:
-    """入札資格判定クラス"""
-
-    def __init__(self):
-        # 入札可能なランク（D、ランク無し、ランク不明）
-        self.eligible_levels = ['level_d', 'no_rank', 'unknown_rank']
-
-    def check_eligibility(self, qualifications: List[Dict[str, Any]],
-                         qualification_summary: Dict[str, Any]) -> Tuple[bool, str, List[str]]:
-        """
-        入札可能かどうかを判定
-
-        Returns:
-            Tuple[bool, str, List[str]]: (入札可否, 判定理由, 詳細理由リスト)
-        """
-
-        # 資格不要の場合は入札可能
-        if qualification_summary.get('has_no_qualification_required'):
-            return True, "資格不要案件のため入札可能", ["資格要件: 不要"]
-
-        # 資格要件が空の場合は入札不可
-        if not qualifications:
-            return False, "資格要件が不明のため入札不可", ["資格要件が記載されていません"]
-
-        eligible_qualifications = []
-        ineligible_qualifications = []
-
-        for qual in qualifications:
-            level = qual.get('level_normalized')
-
-            # レベルが不明な資格は除外
-            if not level:
-                continue
-
-            # 各資格要件をチェック
-            if level in self.eligible_levels:
-                eligible_qualifications.append(
-                    f"✓ {qual.get('organization', '不明')} - {qual.get('category', '不明')} - {qual.get('level', '不明')}"
-                )
-            else:
-                ineligible_qualifications.append(
-                    f"✗ {qual.get('organization', '不明')} - {qual.get('category', '不明')} - {qual.get('level', '不明')}"
-                )
-
-        # 判定結果
-        if ineligible_qualifications:
-            # 入札不可能な資格要件が一つでもある場合
-            reason = f"入札不可（要求ランクが高い: {len(ineligible_qualifications)}件）"
-            details = ineligible_qualifications + eligible_qualifications
-            return False, reason, details
-        elif eligible_qualifications:
-            # すべての資格要件が入札可能な場合
-            reason = f"入札可能（すべての要件を満たす: {len(eligible_qualifications)}件）"
-            return True, reason, eligible_qualifications
-        else:
-            # 判定不能な場合
-            return False, "資格要件の解析に失敗", ["資格要件の形式が認識できません"]
-
-
 class DataNormalizer:
     """データ正規化クラス"""
 
@@ -1098,7 +1039,6 @@ class BiddingDataManager:
         self.db = db_connection
         self.qualification_parser = QualificationParser()
         self.data_normalizer = DataNormalizer()
-        self.eligibility_checker = BiddingEligibilityChecker()
         self.document_extractor = None  # 必要に応じて初期化
 
     def log_job_execution(self, job_name: str, status: str, **kwargs):
@@ -1310,10 +1250,11 @@ class BiddingDataManager:
                     qualifications = self.qualification_parser.extract_qualifications(qualification_text)
                     qualification_summary = self.qualification_parser.get_qualification_summary(qualifications)
 
-                    # 入札可否判定
-                    is_eligible, eligibility_reason, eligibility_details = self.eligibility_checker.check_eligibility(
-                        qualifications, qualification_summary
-                    )
+                    # 入札可否判定はLLMで行うため、ここでは仮の値を設定
+                    # 実際の判定はllm.pyで実施
+                    is_eligible = None  # LLMで判定予定
+                    eligibility_reason = "LLM判定待ち"
+                    eligibility_details = []
 
                     # 統計更新
                     if is_eligible:
