@@ -43,7 +43,7 @@ def map_to_frontend_response(case) -> BiddingCaseFrontendResponse:
         contract_date=case.award_date.isoformat() if case.award_date else None,
         description=case.overview,
         notes=case.remarks,
-        status="active" if case.document_submission_date and case.document_submission_date >= datetime.now().date() else "completed",
+        # status field removed - no longer needed
         is_eligible_to_bid=case.is_eligible_to_bid,
         eligibility_reason=case.eligibility_reason,
         eligibility_details=case.eligibility_details,
@@ -192,8 +192,7 @@ async def get_bidding_stats(
     repo = BiddingCaseRepository(db)
     
     total_cases = repo.count()
-    active_cases = repo.count_active()
-    completed_cases = total_cases - active_cases
+    # active_cases and completed_cases removed - no longer needed
     eligible_cases = repo.count_eligible()
     ineligible_cases = repo.count_ineligible()
     eligibility_percentage = (eligible_cases / total_cases * 100) if total_cases > 0 else 0.0
@@ -208,8 +207,7 @@ async def get_bidding_stats(
     return BiddingStatsResponse(
         total_cases=total_cases,
         total_value=total_value,
-        active_cases=active_cases,
-        completed_cases=completed_cases,
+        # active_cases and completed_cases removed - no longer needed
         average_winning_price=average_value,
         eligible_cases=eligible_cases,
         ineligible_cases=ineligible_cases,

@@ -173,7 +173,7 @@ class BiddingCaseFrontendResponse(BaseModel):
     contract_date: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    # status field removed - no longer needed
     is_eligible_to_bid: Optional[bool] = None
     eligibility_reason: Optional[str] = None
     eligibility_details: Optional[Any] = None
@@ -250,8 +250,8 @@ class HealthCheckResponse(BaseModel):
 class BiddingStatsResponse(BaseModel):
     total_cases: int
     total_value: float
-    active_cases: int
-    completed_cases: int
+    # active_cases field removed - no longer needed
+    # completed_cases field removed - no longer needed
     average_winning_price: float
     eligible_cases: int
     ineligible_cases: int

@@ -99,18 +99,18 @@ const BiddingCasesList: React.FC<BiddingCasesListProps> = ({ cases, loading }) =
                   {biddingCase.industry_type}
                 </span>
               )}
-              {biddingCase.status && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {biddingCase.status}
-                </span>
-              )}
-              {biddingCase.is_eligible_to_bid !== undefined && (
+              {/* Status field removed - no longer needed */}
+              {biddingCase.is_eligible_to_bid !== undefined ? (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   biddingCase.is_eligible_to_bid 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-red-100 text-red-800'
                 }`}>
                   {biddingCase.is_eligible_to_bid ? '入札可能' : '入札不可'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  LLM判定待ち
                 </span>
               )}
               {biddingCase.document_count && biddingCase.document_count > 0 && (

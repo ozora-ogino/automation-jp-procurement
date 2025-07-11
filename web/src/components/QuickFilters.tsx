@@ -23,11 +23,6 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({ onFilterApply, currentFilte
       label: '入札不可能のみ',
       filters: { eligibility_filter: 'ineligible' },
       icon: '❌'
-    },
-    {
-      label: 'アクティブのみ',
-      filters: { status: 'active' },
-      icon: '🟢'
     }
   ];
 

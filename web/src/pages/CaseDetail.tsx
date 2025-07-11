@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { biddingAPI } from '../services/api';
 import DocumentsSection from '../components/DocumentsSection';
 import LLMExtractedDataSection from '../components/LLMExtractedDataSection';
+import EligibilityDetailsSection from '../components/EligibilityDetailsSection';
 
 const CaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -181,24 +182,22 @@ const CaseDetail: React.FC = () => {
                 </dd>
               </div>
             )}
-            {caseData.is_eligible_to_bid !== undefined && (
-              <div className="md:col-span-2">
-                <dt className="text-sm font-medium text-gray-500">入札可否</dt>
-                <dd className="mt-1">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    caseData.is_eligible_to_bid 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {caseData.is_eligible_to_bid ? '入札可能' : '入札不可'}
-                  </span>
-                  {caseData.eligibility_reason && (
-                    <p className="mt-2 text-sm text-gray-600">{caseData.eligibility_reason}</p>
-                  )}
-                </dd>
-              </div>
-            )}
+            {/* Eligibility status is shown in a separate section below */}
           </dl>
+        </div>
+      </div>
+
+      {/* Eligibility Status Section */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">入札可否判定</h2>
+        </div>
+        <div className="p-6">
+          <EligibilityDetailsSection
+            isEligible={caseData.is_eligible_to_bid}
+            reason={caseData.eligibility_reason}
+            details={caseData.eligibility_details}
+          />
         </div>
       </div>
 
@@ -226,12 +225,7 @@ const CaseDetail: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  {caseData.qualification_summary.confidence_score && (
-                    <div>
-                      <span className="font-medium">解析信頼度: </span>
-                      <span>{(caseData.qualification_summary.confidence_score * 100).toFixed(0)}%</span>
-                    </div>
-                  )}
+                  {/* Confidence score removed from display */}
                 </dd>
               </div>
             )}
@@ -254,16 +248,7 @@ const CaseDetail: React.FC = () => {
                 </dd>
               </div>
             )}
-            {caseData.eligibility_details && (
-              <div>
-                <dt className="text-sm font-medium text-gray-500">入札可否詳細</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  <pre className="bg-gray-50 p-2 rounded text-xs">
-                    {JSON.stringify(caseData.eligibility_details, null, 2)}
-                  </pre>
-                </dd>
-              </div>
-            )}
+            {/* Eligibility details moved to dedicated section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <dt className="text-sm font-medium text-gray-500">予定価格</dt>
@@ -399,14 +384,7 @@ const CaseDetail: React.FC = () => {
                   </dd>
                 </div>
               )}
-              {caseData.qualification_confidence && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">資格解析信頼度</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {(caseData.qualification_confidence * 100).toFixed(0)}%
-                  </dd>
-                </div>
-              )}
+              {/* Qualification confidence removed from display */}
               <div>
                 <dt className="text-sm font-medium text-gray-500">作成日時</dt>
                 <dd className="mt-1 text-sm text-gray-900">

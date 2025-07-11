@@ -21,7 +21,7 @@ export interface BiddingCase {
   contract_date?: string;
   description?: string;
   notes?: string;
-  status?: string;
+  // status field removed - no longer needed
   is_eligible_to_bid?: boolean;
   eligibility_reason?: string;
   eligibility_details?: any;
@@ -281,8 +281,8 @@ export interface LLMExtractedData {
 export interface BiddingStats {
   total_cases: number;
   total_value: number;
-  active_cases: number;
-  completed_cases: number;
+  // active_cases field removed - no longer needed
+  // completed_cases field removed - no longer needed
   average_winning_price: number;
   eligible_cases: number;
   ineligible_cases: number;
@@ -301,7 +301,7 @@ export interface SearchParams {
   organization?: string;
   prefecture?: string;
   industry_type?: string;
-  status?: string;
+  // status field removed - no longer needed
   eligible_only?: boolean;
   eligibility_filter?: 'all' | 'eligible' | 'ineligible';
   date_from?: string;
