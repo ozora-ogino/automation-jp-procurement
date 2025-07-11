@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import AdvancedFilters from '../components/AdvancedFilters';
 import DashboardSummary from '../components/DashboardSummary';
 import QuickFilters from '../components/QuickFilters';
+import ProcessingDateFilter from '../components/ProcessingDateFilter';
 import SortOptions, { SortOption, SortDirection } from '../components/SortOptions';
 import { SearchParams } from '../types/bidding';
 import { Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
@@ -40,6 +41,10 @@ const Dashboard: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setSearchParams(prev => ({ ...prev, page }));
+  };
+
+  const handleProcessingDateChange = (date: string | undefined) => {
+    setSearchParams(prev => ({ ...prev, processed_date: date, page: 1 }));
   };
 
   const sortCases = (cases: any[]) => {
@@ -81,7 +86,7 @@ const Dashboard: React.FC = () => {
         <p className="text-gray-600 mb-6">政府調達案件の検索と入札可否判定</p>
       </div>
 
-      <DashboardSummary cases={displayCases} loading={casesLoading} />
+      <DashboardSummary cases={displayCases} loading={casesLoading} processingDate={searchParams.processed_date} />
 
       <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -89,6 +94,10 @@ const Dashboard: React.FC = () => {
             <SearchBar onSearch={handleSearch} />
           </div>
           <div className="flex gap-3 items-center">
+            <ProcessingDateFilter
+              selectedDate={searchParams.processed_date}
+              onDateChange={handleProcessingDateChange}
+            />
             <SortOptions 
               onSortChange={(sort, direction) => {
                 setSortOption(sort);

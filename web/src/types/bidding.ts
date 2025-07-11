@@ -293,4 +293,5 @@ export interface SearchParams {
   price_max?: number;
   page?: number;
   limit?: number;
+  processed_date?: string;  // Add filter by processing date
 }

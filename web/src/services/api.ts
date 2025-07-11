@@ -26,6 +26,17 @@ export const biddingAPI = {
     return response.data;
   },
 
+  getProcessingDates: async () => {
+    const response = await api.get<{
+      processing_date: string;
+      case_count: number;
+      eligible_count: number;
+      ineligible_count: number;
+      first_processed: string;
+      last_processed: string;
+    }[]>('/bidding/processing-dates');
+    return response.data;
+  },
 
   searchCases: async (query: string) => {
     const response = await api.get<BiddingCase[]>('/bidding/search', {

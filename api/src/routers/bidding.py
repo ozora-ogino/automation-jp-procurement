@@ -104,6 +104,7 @@ async def list_bidding_cases(
     limit: int = Query(20, ge=1, le=100, alias="limit"),
     eligible_only: bool = Query(None, description="Filter for eligible cases only (deprecated, use eligibility_filter)"),
     eligibility_filter: str = Query(None, description="Filter by eligibility: 'all', 'eligible', 'ineligible'"),
+    processed_date: str = Query(None, description="Filter by processing date (YYYY-MM-DD)"),
     db: Session = Depends(get_db)
 ):
     repo = BiddingCaseRepository(db)
@@ -112,9 +113,17 @@ async def list_bidding_cases(
     # Handle backward compatibility with eligible_only parameter
     if eligible_only is not None and eligibility_filter is None:
         eligibility_filter = "eligible" if eligible_only else None
+    
+    # Parse processed_date if provided
+    processed_date_obj = None
+    if processed_date:
+        try:
+            processed_date_obj = datetime.strptime(processed_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-    cases = repo.get_all(skip=skip, limit=limit, eligibility_filter=eligibility_filter)
-    total = repo.count(eligibility_filter=eligibility_filter)
+    cases = repo.get_all(skip=skip, limit=limit, eligibility_filter=eligibility_filter, processed_date=processed_date_obj)
+    total = repo.count(eligibility_filter=eligibility_filter, processed_date=processed_date_obj)
 
     return BiddingCaseListResponse(
         cases=[map_to_frontend_response(case) for case in cases],
@@ -183,6 +192,14 @@ async def delete_bidding_case(
         raise HTTPException(status_code=404, detail="Case not found")
 
     return {"message": "Case deleted successfully"}
+
+
+@router.get("/processing-dates")
+async def get_processing_dates(
+    db: Session = Depends(get_db)
+):
+    repo = BiddingCaseRepository(db)
+    return repo.get_processing_dates()
 
 
 @router.get("/stats", response_model=BiddingStatsResponse)

@@ -28,7 +28,7 @@ class BiddingCaseRepository:
     def get_by_case_id(self, case_id: str) -> Optional[BiddingCase]:
         return self.db.query(BiddingCase).filter(BiddingCase.case_id == case_id).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100, eligible_only: bool = False, eligibility_filter: str = None) -> List[BiddingCase]:
+    def get_all(self, skip: int = 0, limit: int = 100, eligible_only: bool = False, eligibility_filter: str = None, processed_date: datetime = None) -> List[BiddingCase]:
         query = self.db.query(BiddingCase)
         
         # Handle backward compatibility
@@ -39,10 +39,19 @@ class BiddingCaseRepository:
             query = query.filter(BiddingCase.is_eligible_to_bid == True)
         elif eligibility_filter == "ineligible":
             query = query.filter(BiddingCase.is_eligible_to_bid == False)
+        
+        # Filter by processing date if provided
+        if processed_date:
+            start_of_day = processed_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = start_of_day + timedelta(days=1)
+            query = query.filter(
+                BiddingCase.processed_at >= start_of_day,
+                BiddingCase.processed_at < end_of_day
+            )
             
         return query.offset(skip).limit(limit).all()
 
-    def count(self, eligible_only: bool = False, eligibility_filter: str = None) -> int:
+    def count(self, eligible_only: bool = False, eligibility_filter: str = None, processed_date: datetime = None) -> int:
         query = self.db.query(func.count(BiddingCase.id))
         
         # Handle backward compatibility
@@ -53,6 +62,15 @@ class BiddingCaseRepository:
             query = query.filter(BiddingCase.is_eligible_to_bid == True)
         elif eligibility_filter == "ineligible":
             query = query.filter(BiddingCase.is_eligible_to_bid == False)
+        
+        # Filter by processing date if provided
+        if processed_date:
+            start_of_day = processed_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = start_of_day + timedelta(days=1)
+            query = query.filter(
+                BiddingCase.processed_at >= start_of_day,
+                BiddingCase.processed_at < end_of_day
+            )
             
         return query.scalar()
 
@@ -303,6 +321,36 @@ class BiddingCaseRepository:
         
         result = self.db.execute(query).scalar()
         return float(result) if result else 0.0
+    
+    def get_processing_dates(self) -> List[Dict[str, Any]]:
+        """Get all distinct processing dates with case counts"""
+        query = text("""
+            SELECT 
+                DATE(processed_at) as processing_date,
+                COUNT(*) as case_count,
+                COUNT(CASE WHEN is_eligible_to_bid = true THEN 1 END) as eligible_count,
+                COUNT(CASE WHEN is_eligible_to_bid = false THEN 1 END) as ineligible_count,
+                MIN(processed_at) as first_processed,
+                MAX(processed_at) as last_processed
+            FROM bidding_cases
+            WHERE processed_at IS NOT NULL
+            GROUP BY DATE(processed_at)
+            ORDER BY processing_date DESC
+        """)
+        
+        results = self.db.execute(query).fetchall()
+        
+        return [
+            {
+                "processing_date": row.processing_date.strftime("%Y-%m-%d") if row.processing_date else None,
+                "case_count": row.case_count,
+                "eligible_count": row.eligible_count,
+                "ineligible_count": row.ineligible_count,
+                "first_processed": row.first_processed.isoformat() if row.first_processed else None,
+                "last_processed": row.last_processed.isoformat() if row.last_processed else None
+            }
+            for row in results
+        ]
 
 
 class CaseEmbeddingRepository:
