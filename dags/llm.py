@@ -18,7 +18,7 @@ class OpenAILLMInference:
     """OpenAI LLMを使用した入札可否判定クラス"""
 
     def __init__(self):
-        self.model = os.getenv("LLM_MODEL", "gpt-4-turbo-preview")
+        self.model = os.getenv("LLM_MODEL", "gpt-4o-2024-11-20")
         self.temperature = 0.1  # 一貫性のある判定のため低めに設定
 
     def analyze_bid_eligibility(self, bid_data: dict) -> dict:
