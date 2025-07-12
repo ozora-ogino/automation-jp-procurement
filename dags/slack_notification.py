@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 import requests
 from airflow.models import Variable
-from sql_connection import PostgreSQLConnection
+from db.connection import PostgreSQLConnection
 
 
 logger = logging.getLogger(__name__)

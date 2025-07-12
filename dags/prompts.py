@@ -1,4 +1,5 @@
 from jinja2 import Template
+import json
 
 VERIFY_BID_PROMPT_TEMPLATE = Template("""
 あなたは政府調達の入札判定アナリストです。次の会社プロファイルと案件要件を比較し、入札可能性を評価してください。
@@ -79,3 +80,38 @@ VERIFY_BID_PROMPT_TEMPLATE = Template("""
 - 理由は具体的かつ簡潔に記載してください
 - 資格要件に関する判定は特に明確に記載してください
 """)
+
+
+def build_prompt(case_name: str, organization_name: str, details: str = "", 
+                qualification_info: str = "", extracted_data: dict = None) -> str:
+    """
+    Build a prompt for LLM inference based on case information.
+    
+    Args:
+        case_name: Name of the bidding case
+        organization_name: Organization offering the bid
+        details: Case details
+        qualification_info: Qualification requirements
+        extracted_data: LLM extracted data (if available)
+    
+    Returns:
+        Formatted prompt string
+    """
+    # Prepare bid data for the template
+    bid_data = {
+        "case_name": case_name,
+        "organization_name": organization_name,
+        "details": details or "詳細情報なし",
+        "qualification_info": qualification_info or "資格要件情報なし"
+    }
+    
+    # Add extracted data if available
+    if extracted_data:
+        bid_data["extracted_info"] = extracted_data
+    
+    # Render the prompt using the template
+    prompt = VERIFY_BID_PROMPT_TEMPLATE.render(
+        bid_data=json.dumps(bid_data, ensure_ascii=False, indent=2)
+    )
+    
+    return prompt
