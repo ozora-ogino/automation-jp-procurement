@@ -96,7 +96,7 @@ const DocumentsSection: React.FC<DocumentsSectionProps> = ({
         </div>
 
         {/* Document list */}
-        {documents.length > 0 && (
+        {documents && documents.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-700 mb-2">文書一覧</h4>
             {documents.map((doc, idx) => (
