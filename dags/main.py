@@ -8,6 +8,7 @@ from preprocessor import main as preprocessor_main, process_llm_extraction
 from text_embedding import main as text_embeddgin_main
 from llm import main as llm_main
 from pdf_downloader import download_njss_multi_docs
+from slack_notification import notify_success, notify_failure
 
 
 dag = DAG(
@@ -51,4 +52,17 @@ llm_inference_op = PythonOperator(task_id="llm_inference",
                          python_callable=llm_main,
                          dag=dag)
 
-crawl_op >> download_docs_op >> preprocess_op >> llm_extraction_op >> llm_inference_op
+# Create Slack notification task
+slack_notification_op = PythonOperator(
+    task_id="slack_notification",
+    python_callable=notify_success,
+    trigger_rule="all_done",  # Run regardless of upstream success/failure
+    dag=dag
+)
+
+# Set up task dependencies
+crawl_op >> download_docs_op >> preprocess_op >> llm_extraction_op >> llm_inference_op >> slack_notification_op
+
+# Add failure callbacks to each task
+for task in [crawl_op, download_docs_op, preprocess_op, llm_extraction_op, llm_inference_op]:
+    task.on_failure_callback = notify_failure
