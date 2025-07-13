@@ -14,16 +14,14 @@ import { Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { useURLSearchParams } from '../hooks/useURLSearchParams';
 import { useURLSortParams } from '../hooks/useURLSortParams';
 import { useURLViewMode } from '../hooks/useURLViewMode';
+import { format, parseISO, isToday, isYesterday, differenceInDays } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 const Dashboard: React.FC = () => {
-  // Set default to today's date
-  const today = new Date().toISOString().split('T')[0];
-  
   // Use URL-based state management
   const { searchParams, setSearchParams } = useURLSearchParams({
     page: 1,
     limit: 20,
-    processed_date: today,
   });
   
   const { viewMode, setViewMode } = useURLViewMode('grid');
@@ -85,6 +83,42 @@ const Dashboard: React.FC = () => {
   };
 
   const displayCases = casesData?.cases ? sortCases(casesData.cases) : [];
+
+  // Group cases by date
+  const groupCasesByDate = (cases: any[]) => {
+    const groups: { [key: string]: any[] } = {};
+    
+    cases.forEach(caseItem => {
+      const date = parseISO(caseItem.created_at);
+      const dateKey = format(date, 'yyyy-MM-dd');
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(caseItem);
+    });
+    
+    return groups;
+  };
+
+  const getDateLabel = (dateString: string) => {
+    const date = parseISO(dateString);
+    const today = new Date();
+    const daysDiff = differenceInDays(today, date);
+    
+    if (isToday(date)) {
+      return '今日';
+    } else if (isYesterday(date)) {
+      return '昨日';
+    } else if (daysDiff < 7) {
+      return format(date, 'M月d日(E)', { locale: ja });
+    } else {
+      return format(date, 'M月d日', { locale: ja });
+    }
+  };
+
+  const groupedCases = groupCasesByDate(displayCases);
+  const sortedDates = Object.keys(groupedCases).sort((a, b) => b.localeCompare(a)); // 新しい日付順
 
   return (
     <div className="space-y-6">
@@ -149,89 +183,110 @@ const Dashboard: React.FC = () => {
       />
 
       <div>
-        {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {casesLoading ? (
-              [...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+        {casesLoading ? (
+          <div className="space-y-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i}>
+                <div className="h-6 bg-gray-200 rounded w-24 mb-4 animate-pulse"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(3)].map((_, j) => (
+                    <div key={j} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+                      <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  ))}
                 </div>
-              ))
-            ) : (
-              displayCases.map((biddingCase) => (
-                <BiddingCaseCard key={biddingCase.id} biddingCase={biddingCase} />
-              ))
-            )}
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      案件名
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      機関
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      締切
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      予定価格
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      状態
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {displayCases.map((biddingCase) => (
-                    <tr key={biddingCase.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <Link 
-                          to={`/case/${biddingCase.id}`} 
-                          state={{ search: window.location.search }}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          {biddingCase.case_name}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {biddingCase.organization}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {biddingCase.deadline ? new Date(biddingCase.deadline).toLocaleDateString('ja-JP') : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {biddingCase.planned_price ? 
-                          new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(biddingCase.planned_price) : 
-                          '-'
-                        }
-                      </td>
-                      <td className="px-6 py-4">
-                        {biddingCase.is_eligible_to_bid !== undefined ? (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            biddingCase.is_eligible_to_bid 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {biddingCase.is_eligible_to_bid ? '入札可能' : '入札不可'}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            判定待ち
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-8">
+            {sortedDates.map((dateKey) => (
+              <div key={dateKey}>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">{getDateLabel(dateKey)}</span>
+                  <span className="text-sm text-gray-500 font-normal">
+                    ({groupedCases[dateKey].length}件)
+                  </span>
+                </h2>
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groupedCases[dateKey].map((biddingCase) => (
+                      <BiddingCaseCard key={biddingCase.id} biddingCase={biddingCase} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              案件名
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              機関
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              締切
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              予定価格
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              状態
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {groupedCases[dateKey].map((biddingCase) => (
+                            <tr key={biddingCase.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4">
+                                <Link 
+                                  to={`/case/${biddingCase.id}`} 
+                                  state={{ search: window.location.search }}
+                                  className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                  {biddingCase.case_name}
+                                </Link>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {biddingCase.organization}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {biddingCase.deadline ? new Date(biddingCase.deadline).toLocaleDateString('ja-JP') : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {biddingCase.planned_price ? 
+                                  new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(biddingCase.planned_price) : 
+                                  '-'
+                                }
+                              </td>
+                              <td className="px-6 py-4">
+                                {biddingCase.is_eligible_to_bid !== undefined ? (
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    biddingCase.is_eligible_to_bid 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {biddingCase.is_eligible_to_bid ? '入札可能' : '入札不可'}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    判定待ち
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
         

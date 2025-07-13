@@ -48,8 +48,12 @@ class BiddingCaseRepository:
                 BiddingCase.processed_at >= start_of_day,
                 BiddingCase.processed_at < end_of_day
             )
+        else:
+            # Default: Get last 7 days of data
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            query = query.filter(BiddingCase.created_at >= seven_days_ago)
             
-        return query.offset(skip).limit(limit).all()
+        return query.order_by(BiddingCase.created_at.desc()).offset(skip).limit(limit).all()
 
     def count(self, eligible_only: bool = False, eligibility_filter: str = None, processed_date: datetime = None) -> int:
         query = self.db.query(func.count(BiddingCase.id))
@@ -71,6 +75,10 @@ class BiddingCaseRepository:
                 BiddingCase.processed_at >= start_of_day,
                 BiddingCase.processed_at < end_of_day
             )
+        else:
+            # Default: Get last 7 days of data
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            query = query.filter(BiddingCase.created_at >= seven_days_ago)
             
         return query.scalar()
 
