@@ -51,7 +51,6 @@ services:
       - ./docker_volumes/config:/opt/airflow/config
       - ./docker_volumes/plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/csv_data
-      - ./requirements.txt:/opt/airflow/requirements.txt:ro
     ports:
       - "${AIRFLOW_WEBSERVER_PORT}:8080"
     healthcheck:
@@ -146,7 +145,6 @@ services:
       - ./docker_volumes/config:/opt/airflow/config
       - ./docker_volumes/plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/csv_data
-      - ./requirements.txt:/opt/airflow/requirements.txt:ro
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8974/health" ]
       interval: 30s
