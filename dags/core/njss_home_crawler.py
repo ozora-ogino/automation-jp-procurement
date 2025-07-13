@@ -284,10 +284,14 @@ class NJSSHomeCrawlerService:
             finally:
                 await browser.close()
 
-    def process_downloaded_files(self, downloaded_files: List[str]) -> str:
+    def process_downloaded_files(self, downloaded_files: List[str], output_filename: str = None) -> str:
         """
         Process downloaded files and merge them into a single CSV.
         This follows the exact same logic as the original main() function.
+        
+        Args:
+            downloaded_files: List of downloaded file paths
+            output_filename: Optional custom output filename (defaults to CSV_FILE_PATH)
         """
         if not downloaded_files:
             logger.warning("No files were downloaded from NJSS")
@@ -328,7 +332,10 @@ class NJSSHomeCrawlerService:
             raise Exception("No CSV files found")
 
         # Prepare final output path
-        final_csv_path = CSV_FILE_PATH
+        if output_filename:
+            final_csv_path = Path(DATA_DIR) / output_filename
+        else:
+            final_csv_path = CSV_FILE_PATH
 
         # Ensure output directory exists
         os.makedirs(os.path.dirname(final_csv_path), exist_ok=True)

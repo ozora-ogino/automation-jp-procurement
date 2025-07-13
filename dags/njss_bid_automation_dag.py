@@ -27,7 +27,7 @@ from processing.llm_inference_service import LLMInferenceService
 # from processing.embedding_service import EmbeddingService
 from utils.file_service import FileService
 from slack_notification import notify_success, notify_failure
-from constants import CSV_FILE_PATH, DATA_DIR, DOC_DIR
+from constants import DATA_DIR, DOC_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,15 @@ def crawl_njss_task(**context):
 
     headless = os.environ.get('CRAWLER_HEADLESS', 'true').lower() == 'true'
 
-    # Check if we already have a CSV file
-    csv_path = Path(CSV_FILE_PATH)
+    # Generate date-based filename
+    from datetime import datetime
+    date_str = datetime.now().strftime('%Y%m%d')
+    csv_filename = f"search_result_{date_str}.csv"
+    csv_path = Path(DATA_DIR) / csv_filename
+
+    # Check if today's CSV file already exists
     if csv_path.exists():
-        logger.info(f"CSV file already exists at {csv_path}, skipping download")
+        logger.info(f"Today's CSV file already exists at {csv_path}, skipping download")
         # Push result to XCom if in Airflow context
         if context and 'task_instance' in context:
             context['task_instance'].xcom_push(key='csv_path', value=str(csv_path))
@@ -80,16 +85,16 @@ def crawl_njss_task(**context):
         # Download files from home page
         downloaded_files = asyncio.run(crawler.download_from_home())
 
-        # Process and merge files into final CSV
-        csv_path = crawler.process_downloaded_files(downloaded_files)
+        # Process and merge files into final CSV with custom filename
+        csv_path = crawler.process_downloaded_files(downloaded_files, output_filename=csv_filename)
 
         # Push result to XCom if in Airflow context
         if context and 'task_instance' in context:
-            context['task_instance'].xcom_push(key='csv_path', value=csv_path)
+            context['task_instance'].xcom_push(key='csv_path', value=str(csv_path))
             context['task_instance'].xcom_push(key='download_status', value='success')
 
         logger.info(f"Successfully saved CSV to {csv_path}")
-        return csv_path
+        return str(csv_path)
 
     except Exception as e:
         logger.error(f"Failed to download NJSS CSV: {str(e)}")
@@ -130,9 +135,14 @@ def download_documents_task(**context):
     auth_service = NJSSAuthenticationService(username, password, headless)
     file_service = FileService(base_dir=DATA_DIR)
 
+    # Get CSV path from XCom
+    csv_path = context['task_instance'].xcom_pull(task_ids='crawl_njss', key='csv_path')
+    if not csv_path:
+        raise ValueError("CSV path not found in XCom")
+
     # Read cases from CSV
     import pandas as pd
-    df = pd.read_csv(CSV_FILE_PATH)
+    df = pd.read_csv(csv_path)
 
     # Check available columns
     logger.info(f"CSV columns: {list(df.columns)}")
@@ -241,8 +251,8 @@ def download_documents_task(**context):
                     break
 
         # Save updated CSV
-        df.to_csv(CSV_FILE_PATH, index=False)
-        logger.info(f"Updated CSV: {CSV_FILE_PATH}")
+        df.to_csv(csv_path, index=False)
+        logger.info(f"Updated CSV: {csv_path}")
 
     return {
         'cases_processed': len(cases),
@@ -253,6 +263,11 @@ def download_documents_task(**context):
 
 def preprocess_data_task(**context):
     """Task 3: Process CSV data and update database"""
+    # Get CSV path from XCom
+    csv_path = context['task_instance'].xcom_pull(task_ids='crawl_njss', key='csv_path')
+    if not csv_path:
+        raise ValueError("CSV path not found in XCom")
+
     # Initialize database connection
     db_connection = PostgreSQLConnection()
 
@@ -265,7 +280,7 @@ def preprocess_data_task(**context):
     processing_service = BiddingProcessingService(case_repo, log_repo, file_service)
 
     # Process CSV data
-    total, new, updated = processing_service.process_csv_data(CSV_FILE_PATH)
+    total, new, updated = processing_service.process_csv_data(csv_path)
 
     logger.info(f"Processed {total} records: {new} new, {updated} updated")
     return {'total': total, 'new': new, 'updated': updated}
@@ -352,10 +367,9 @@ def generate_embeddings_task(**context):
 dag = DAG(
     dag_id="njss_procurement_pipeline_v2",
     description="Fully refactored NJSS procurement automation pipeline",
-    schedule_interval="0 9 * * *",  # Run daily at 9 AM JST
-    start_date=datetime.datetime(2024, 1, 1),
+    schedule_interval="0 3 * * *",  # Run daily at 3 AM JST
+    start_date=datetime.datetime(2025, 7, 1),
     catchup=False,
-    tags=['refactored', 'njss', 'v2']
 )
 
 # Define tasks
