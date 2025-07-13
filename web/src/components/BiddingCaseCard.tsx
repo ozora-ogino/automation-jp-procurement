@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { BiddingCase } from '../types/bidding';
 import { 
@@ -21,6 +21,7 @@ interface BiddingCaseCardProps {
 
 const BiddingCaseCard: React.FC<BiddingCaseCardProps> = ({ biddingCase }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const location = useLocation();
 
   const formatCurrency = (value?: number) => {
     if (!value) return '-';
@@ -84,7 +85,11 @@ const BiddingCaseCard: React.FC<BiddingCaseCardProps> = ({ biddingCase }) => {
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border ${eligibilityStatus.borderColor} hover:shadow-md transition-shadow`}>
-      <Link to={`/case/${biddingCase.id}`} className="block p-6">
+      <Link 
+        to={`/case/${biddingCase.id}`} 
+        state={{ search: location.search }}
+        className="block p-6"
+      >
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1 pr-4">
             <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2">
@@ -194,6 +199,7 @@ const BiddingCaseCard: React.FC<BiddingCaseCardProps> = ({ biddingCase }) => {
           </div>
           <Link
             to={`/case/${biddingCase.id}`}
+            state={{ search: location.search }}
             className="inline-flex items-center mt-4 text-sm font-medium text-blue-600 hover:text-blue-800"
           >
             詳細を見る →

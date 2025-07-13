@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { biddingAPI } from '../services/api';
 import BiddingCaseCard from '../components/BiddingCaseCard';
@@ -7,22 +8,26 @@ import AdvancedFilters from '../components/AdvancedFilters';
 import DashboardSummary from '../components/DashboardSummary';
 import QuickFilters from '../components/QuickFilters';
 import ProcessingDateFilter from '../components/ProcessingDateFilter';
-import SortOptions, { SortOption, SortDirection } from '../components/SortOptions';
+import SortOptions from '../components/SortOptions';
 import { SearchParams } from '../types/bidding';
 import { Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { useURLSearchParams } from '../hooks/useURLSearchParams';
+import { useURLSortParams } from '../hooks/useURLSortParams';
+import { useURLViewMode } from '../hooks/useURLViewMode';
 
 const Dashboard: React.FC = () => {
   // Set default to today's date
   const today = new Date().toISOString().split('T')[0];
   
-  const [searchParams, setSearchParams] = useState<SearchParams>({
+  // Use URL-based state management
+  const { searchParams, setSearchParams } = useURLSearchParams({
     page: 1,
     limit: 20,
     processed_date: today,
   });
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortOption, setSortOption] = useState<SortOption>('created');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  
+  const { viewMode, setViewMode } = useURLViewMode('grid');
+  const { sortOption, sortDirection, setSortParams } = useURLSortParams('created', 'desc');
 
 
   const { data: casesData, isLoading: casesLoading } = useQuery({
@@ -104,8 +109,7 @@ const Dashboard: React.FC = () => {
             />
             <SortOptions 
               onSortChange={(sort, direction) => {
-                setSortOption(sort);
-                setSortDirection(direction);
+                setSortParams(sort, direction);
               }}
               currentSort={sortOption}
               currentDirection={sortDirection}
@@ -188,9 +192,13 @@ const Dashboard: React.FC = () => {
                   {displayCases.map((biddingCase) => (
                     <tr key={biddingCase.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <a href={`/case/${biddingCase.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                        <Link 
+                          to={`/case/${biddingCase.id}`} 
+                          state={{ search: window.location.search }}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
                           {biddingCase.case_name}
-                        </a>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {biddingCase.organization}

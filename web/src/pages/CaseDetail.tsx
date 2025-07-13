@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { biddingAPI } from '../services/api';
@@ -9,6 +9,10 @@ import EligibilityDetailsSection from '../components/EligibilityDetailsSection';
 
 const CaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  
+  // Get the search params from the referring page (if any)
+  const referrerSearch = location.state?.search || '';
   
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['case', id],
@@ -73,7 +77,7 @@ const CaseDetail: React.FC = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{caseData.case_name}</h1>
         <Link
-          to="/"
+          to={`/${referrerSearch}`}
           className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
