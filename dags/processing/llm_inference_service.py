@@ -67,6 +67,17 @@ VERIFY_BID_PROMPT_TEMPLATE = Template("""
   }
 }
 
+### 資格区分
+| 資格区分   | 付与数値合計 | 等級    |
+| ------ | ------ | ----- |
+| 物品の製造  | **34** | **D** |
+| 物品の販売  | **43** | **D** |
+| 役務の提供等 | **43** | **D** |
+| 物品の買受け | **43** | **C** |
+
+ただし、"防衛省所管契約事務取扱細則第１８条第４項各号のいずれかに該当する者であること"と記載がある場合はSolafuneha該当するため、資格ランク関係なく入札可能です。 (SBIR)
+
+
 ## 案件要件
 
 {{ bid_data }}
@@ -142,7 +153,7 @@ class LLMInferenceService:
                             if result['is_eligible']:
                                 eligible_count += 1
                             logger.info(f"Case ID {case['case_id']}: {'入札可能' if result['is_eligible'] else '入札不可'}")
-                            
+
                             # Commit every 10 cases like original
                             if processed_count % 10 == 0:
                                 logger.info(f"進捗: {processed_count}/{len(cases)}")
@@ -182,7 +193,7 @@ class LLMInferenceService:
             # Get today's cases like original llm.py
             from datetime import date
             today = date.today()
-            
+
             cursor.execute("""
                 SELECT
                     case_id, case_name, org_name as organization_name,
@@ -202,7 +213,7 @@ class LLMInferenceService:
             rows = cursor.fetchall()
             columns = [desc[0] for desc in cursor.description]
             cases = [dict(zip(columns, row)) for row in rows]
-            
+
             # Filter cases like original llm.py
             filtered_cases = []
             skipped_count = 0
@@ -213,7 +224,7 @@ class LLMInferenceService:
                     skipped_count += 1
                     continue
                 filtered_cases.append(case)
-            
+
             logger.info(f"本日の入札データ数: {len(cases)}, スキップ: {skipped_count}")
             return filtered_cases
 
@@ -284,7 +295,7 @@ class LLMInferenceService:
         try:
             # Convert case_id to int for database
             case_id_int = int(case_id)
-            
+
             with self.case_repo.get_cursor() as cursor:
                 # Update exactly like the original llm.py
                 cursor.execute("""
