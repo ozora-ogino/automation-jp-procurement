@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from src.routers import bidding, health, search
+from src.routers import bidding, health, search, chatbot
 from src.database import engine, Base
 
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +36,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(bidding.router, prefix="/api/v1/bidding", tags=["bidding"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
+app.include_router(chatbot.router, prefix="/api/v1/chatbot", tags=["chatbot"])
 
 
 @app.get("/")

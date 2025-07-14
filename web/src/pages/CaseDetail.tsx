@@ -6,6 +6,7 @@ import { biddingAPI } from '../services/api';
 import DocumentsSection from '../components/DocumentsSection';
 import LLMExtractedDataSection from '../components/LLMExtractedDataSection';
 import EligibilityDetailsSection from '../components/EligibilityDetailsSection';
+import CaseChatbot from '../components/CaseChatbot';
 
 const CaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -457,6 +458,11 @@ const CaseDetail: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+      
+      {/* Chatbot Component */}
+      {caseData && (
+        <CaseChatbot caseId={String(caseData.case_id)} caseName={caseData.case_name} />
       )}
     </div>
   );
